@@ -1,0 +1,19 @@
+<div class="card mb-2">
+  <div class="card-header d-flex justify-content-between align-items-center" 
+       id="heading-{{ sucursal.id }}">
+    <h5 class="mb-0">
+      {{ sucursal.nombre }}
+    </h5>
+    <button class="btn btn-link" type="button" data-bs-toggle="collapse" 
+            data-bs-target="#collapse-{{ sucursal.id }}" aria-expanded="false" 
+            aria-controls="collapse-{{ sucursal.id }}">
+      <i class="fas fa-chevron-down"></i>
+    </button>
+  </div>
+  <div id="collapse-{{ sucursal.id }}" class="collapse" 
+    aria-labelledby="heading-{{ sucursal.id }}" data-bs-parent="#sucursalesAccordion">
+    <div class="card-body">
+        Información detallada de la sucursal {{ sucursal.nombre }}
+    </div>
+  </div>
+</div>
