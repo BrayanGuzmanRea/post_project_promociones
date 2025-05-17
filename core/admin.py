@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
-from .models import Usuario, Rol
+from .models import Usuario, Rol, Empresa, Sucursal, CanalCliente
 
 # Formulario para crear usuarios (incluye campo rol)
 class UsuarioCreationForm(UserCreationForm):
@@ -16,7 +16,7 @@ class UsuarioChangeForm(UserChangeForm):
         model = Usuario
         fields = ('username', 'email', 'nombre', 'rol', 'empresa', 'sucursal', 'is_active', 'is_staff', 'is_superuser')
 
-# Admin personalizado
+# Admin personalizado para Usuario
 class UsuarioAdmin(BaseUserAdmin):
     add_form = UsuarioCreationForm
     form = UsuarioChangeForm
@@ -39,4 +39,25 @@ class UsuarioAdmin(BaseUserAdmin):
     ordering = ('username',)
 
 admin.site.register(Usuario, UsuarioAdmin)
-admin.site.register(Rol)  # también registra los roles para administrarlos
+admin.site.register(Rol)  # Registro de roles para administración
+
+# Admin personalizado para Empresa
+@admin.register(Empresa)
+class EmpresaAdmin(admin.ModelAdmin):
+    list_display = ('empresa_id', 'nombre')
+    search_fields = ('nombre',)
+
+# Admin personalizado para Sucursal
+@admin.register(Sucursal)
+class SucursalAdmin(admin.ModelAdmin):
+    list_display = ('sucursal_id', 'nombre', 'empresa')
+    list_filter = ('empresa',)
+    search_fields = ('nombre',)
+
+# Admin personalizado para CanalCliente
+@admin.register(CanalCliente)
+class CanalClienteAdmin(admin.ModelAdmin):
+    list_display = ('canal_cliente_id', 'nombre')
+    search_fields = ('nombre',)
+ 
+ 
