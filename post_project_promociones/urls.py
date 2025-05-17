@@ -23,7 +23,10 @@ from django.views.generic import TemplateView
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', TemplateView.as_view(template_name='core/index.html'), name='home'), 
-# Aquí agregaríamos las URLs de nuestras apps 
+    
+    # Aquí agregaríamos las URLs de nuestras apps 
+    path('', include('core.urls')),
+
 ]
 
 if settings.DEBUG: 
