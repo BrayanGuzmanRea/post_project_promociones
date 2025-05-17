@@ -50,7 +50,6 @@ class CanalCliente(models.Model):
         return self.nombre
 
 
-
 class Usuario(AbstractUser):
     nombre = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
@@ -58,13 +57,12 @@ class Usuario(AbstractUser):
         'Rol',
         on_delete=models.RESTRICT,
         related_name='usuarios',
-        null=True,       
-        blank=True       
+        null=False,    
+        blank=False    
     )
     empresa = models.ForeignKey('Empresa', on_delete=models.RESTRICT, null=True, blank=True)
     sucursal = models.ForeignKey('Sucursal', on_delete=models.RESTRICT, null=True, blank=True)
     estado = models.IntegerField(choices=EstadoEntidades.choices, default=EstadoEntidades.ACTIVO)
-
 
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['email', 'nombre']
@@ -74,6 +72,7 @@ class Usuario(AbstractUser):
 
     def __str__(self):
         return self.nombre
+
 
 
 class Cliente(models.Model):
@@ -93,7 +92,6 @@ class Cliente(models.Model):
     def __str__(self):
         # Muestra el nombre del usuario asociado o un texto si no tiene usuario
         return self.usuario.nombre if self.usuario else "Cliente sin usuario"
-
 
 class GrupoProveedor(models.Model):
     grupo_proveedor_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
