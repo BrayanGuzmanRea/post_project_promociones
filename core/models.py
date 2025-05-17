@@ -116,27 +116,27 @@ class SublineaArticulo(models.Model):
 
     def __str__(self):
         return self.nombre
-
-
+  
 class Articulo(models.Model):
     articulo_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     empresa = models.ForeignKey(Empresa, on_delete=models.RESTRICT, related_name='articulos')
+    sucursal = models.ForeignKey(Sucursal, on_delete=models.RESTRICT, related_name='articulos', null=True, blank=True)
     codigo = models.CharField(max_length=50)
-    codigo_barras = models.CharField(max_length=50, null=True, blank=True)
-    codigo_ean = models.CharField(max_length=50, null=True, blank=True)
-    descripcion = models.CharField(max_length=255, null=True, blank=True)
+    codigo_barras = models.CharField(max_length=50, blank=True, null=True)
+    codigo_ean = models.CharField(max_length=50, blank=True, null=True)
+    descripcion = models.CharField(max_length=255, blank=True, null=True)
     grupo_proveedor = models.ForeignKey(GrupoProveedor, on_delete=models.RESTRICT, related_name='articulos')
     linea_articulo = models.ForeignKey(LineaArticulo, on_delete=models.RESTRICT, related_name='articulos')
-    unidad_medida = models.CharField(max_length=50, null=True, blank=True)
-    unidad_compra = models.CharField(max_length=50, null=True, blank=True)
-    unidad_reparto = models.CharField(max_length=50, null=True, blank=True)
-    unidad_bonificacion = models.CharField(max_length=50, null=True, blank=True)
-    factor_reparto = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    factor_compra = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    factor_bonificacion = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    tipo_afectacion = models.CharField(max_length=50, null=True, blank=True)
-    peso = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    tipo_producto = models.CharField(max_length=50, null=True, blank=True)
+    unidad_medida = models.CharField(max_length=50, blank=True, null=True)
+    unidad_compra = models.CharField(max_length=50, blank=True, null=True)
+    unidad_reparto = models.CharField(max_length=50, blank=True, null=True)
+    unidad_bonificacion = models.CharField(max_length=50, blank=True, null=True)
+    factor_reparto = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    factor_compra = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    factor_bonificacion = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    tipo_afectacion = models.CharField(max_length=50, blank=True, null=True)
+    peso = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    tipo_producto = models.CharField(max_length=50, blank=True, null=True)
     afecto_retencion = models.BooleanField(default=False)
     afecto_detraccion = models.BooleanField(default=False)
     precio = models.DecimalField(max_digits=10, decimal_places=2)
