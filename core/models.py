@@ -2,6 +2,7 @@ import uuid
 from django.db import models
 from django.utils import timezone
 from post_project_promociones.choices import EstadoEntidades
+from django.contrib.auth.models import AbstractUser 
 
 class Rol(models.Model):
     rol_id = models.AutoField(primary_key=True)
@@ -49,15 +50,24 @@ class CanalCliente(models.Model):
         return self.nombre
 
 
-class Usuario(models.Model):
-    usuario_id = models.AutoField(primary_key=True)
+
+class Usuario(AbstractUser):
     nombre = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
-    password = models.CharField(max_length=255)
-    rol = models.ForeignKey(Rol, on_delete=models.RESTRICT, related_name='usuarios')
-    empresa = models.ForeignKey(Empresa, on_delete=models.RESTRICT, null=True, blank=True)
-    sucursal = models.ForeignKey(Sucursal, on_delete=models.RESTRICT, null=True, blank=True)
+    rol = models.ForeignKey(
+        'Rol',
+        on_delete=models.RESTRICT,
+        related_name='usuarios',
+        null=True,       
+        blank=True       
+    )
+    empresa = models.ForeignKey('Empresa', on_delete=models.RESTRICT, null=True, blank=True)
+    sucursal = models.ForeignKey('Sucursal', on_delete=models.RESTRICT, null=True, blank=True)
     estado = models.IntegerField(choices=EstadoEntidades.choices, default=EstadoEntidades.ACTIVO)
+
+
+    USERNAME_FIELD = 'username'
+    REQUIRED_FIELDS = ['email', 'nombre']
 
     class Meta:
         db_table = 'usuarios'

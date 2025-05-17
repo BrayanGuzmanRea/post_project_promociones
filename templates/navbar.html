@@ -61,7 +61,9 @@
                     </ul>
                 </div>
                 {% else %}
-                <a href="#" class="btn btn-outline-light"><i class="fasfa-sign-in-alt me-1"></i>Iniciar sesión</a>
+                <a href="{% url 'login' %}" class="btn btn-outline-light">
+                    <i class="fas fa-sign-in-alt me-1"></i>Iniciar sesión
+                </a>
             {% endif %}
             </div>
         </div>
