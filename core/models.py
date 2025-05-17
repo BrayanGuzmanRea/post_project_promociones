@@ -78,14 +78,21 @@ class Usuario(AbstractUser):
 
 class Cliente(models.Model):
     cliente_id = models.AutoField(primary_key=True)
-    nombre = models.CharField(max_length=255)
     canal_cliente = models.ForeignKey(CanalCliente, on_delete=models.RESTRICT, related_name='clientes')
+    usuario = models.ForeignKey(
+        'Usuario',
+        on_delete=models.CASCADE,
+        related_name='clientes',
+        null=True,
+        blank=True
+    )
 
     class Meta:
         db_table = 'clientes'
 
     def __str__(self):
-        return self.nombre
+        # Muestra el nombre del usuario asociado o un texto si no tiene usuario
+        return self.usuario.nombre if self.usuario else "Cliente sin usuario"
 
 
 class GrupoProveedor(models.Model):
