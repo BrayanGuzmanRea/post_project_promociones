@@ -2,8 +2,8 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
-from .models import Usuario, Rol, Empresa, Sucursal, CanalCliente
-
+from .models import Usuario, Rol, Empresa, Sucursal, CanalCliente, Cliente
+from core.models import Cliente, Usuario
 # Formulario para crear usuarios (incluye campo rol)
 class UsuarioCreationForm(UserCreationForm):
     class Meta:
@@ -60,4 +60,20 @@ class CanalClienteAdmin(admin.ModelAdmin):
     list_display = ('canal_cliente_id', 'nombre')
     search_fields = ('nombre',)
  
- 
+
+class ClienteForm(forms.ModelForm):
+    class Meta:
+        model = Cliente
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Filtrar usuarios cuyo rol sea el ID 5
+        self.fields['usuario'].queryset = Usuario.objects.filter(rol_id=5)
+
+@admin.register(Cliente)
+class ClienteAdmin(admin.ModelAdmin):
+    form = ClienteForm
+    list_display = ('cliente_id', 'usuario', 'canal_cliente')
+    search_fields = ('usuario__username', 'usuario__nombre')
+    list_filter = ('canal_cliente',)
