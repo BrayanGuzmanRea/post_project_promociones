@@ -2,8 +2,9 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
-from .models import Usuario, Rol, Empresa, Sucursal, CanalCliente, Cliente
+from .models import Usuario, Rol, Empresa, Sucursal, CanalCliente, Cliente, Articulo
 from core.models import Cliente, Usuario
+
 # Formulario para crear usuarios (incluye campo rol)
 class UsuarioCreationForm(UserCreationForm):
     class Meta:
@@ -77,3 +78,4 @@ class ClienteAdmin(admin.ModelAdmin):
     list_display = ('cliente_id', 'usuario', 'canal_cliente')
     search_fields = ('usuario__username', 'usuario__nombre')
     list_filter = ('canal_cliente',)
+
