@@ -1,4 +1,4 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 
@@ -47,3 +47,17 @@ def empresa_seleccionada(request, empresa_id):
         'sucursales_con_articulos': sucursales_con_articulos,
     }
     return render(request, 'core/empresas/empresaSeleccionada.html', context)
+
+def agregar_producto(request, articulo_id):
+    # Obtener el producto que se desea agregar al carrito
+    articulo = get_object_or_404(Articulo, pk=articulo_id)
+    
+    # Lógica para agregar el producto al carrito (esto se debe implementar)
+    # Ejemplo de agregarlo a la sesión:
+    carrito = request.session.get('carrito', [])
+    carrito.append(articulo_id)  # Guardar solo el ID del producto, o el objeto completo si prefieres
+    request.session['carrito'] = carrito
+
+    # Redirigir al usuario a la misma página para continuar visualizando productos
+    return redirect(request.META.get('HTTP_REFERER'))
+

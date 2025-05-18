@@ -31,7 +31,7 @@ urlpatterns = [
     # Ejemplo:
     # path('core/', include('core.urls')),
     path('empresa/<int:empresa_id>/', views.empresa_seleccionada, name='empresa_seleccionada'),
-
+    path('agregar-producto/<uuid:articulo_id>/', views.agregar_producto, name='agregar_producto'),
 ]
 
 if settings.DEBUG:

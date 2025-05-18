@@ -21,11 +21,35 @@
         <div id="collapse-{{ item.sucursal.sucursal_id }}" class="collapse" aria-labelledby="heading-{{ item.sucursal.sucursal_id }}" data-bs-parent="#accordionSucursales">
             <div class="card-body">
                 {% if item.articulos.exists %}
-                    <ul>
-                        {% for articulo in item.articulos %}
-                            <li>{{ articulo.descripcion }}</li>
-                        {% endfor %}
-                    </ul>
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Descripción</th>
+                                <th>Precio</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for articulo in item.articulos %}
+                            <tr>
+                                <td>{{ articulo.codigo }}</td>
+                                <td>{{ articulo.descripcion }}</td>
+                                <td>${{ articulo.precio }}</td>
+                                <td>
+                                    <form action="{% url 'agregar_producto' articulo.articulo_id %}" method="post">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-primary">
+                                            <i class="fas fa-shopping-cart"></i> Agregar producto
+                                        </button>
+                                    </form>
+                                    <!-- Aquí deberás implementar la lógica para agregar el producto al carrito -->
+                                    <!-- Puedes usar session, base de datos o cualquier otra lógica más adelante -->
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 {% else %}
                     <p><em>Sin artículos</em></p>
                 {% endif %}
