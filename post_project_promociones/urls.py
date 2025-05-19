@@ -29,7 +29,7 @@ urlpatterns = [
 
     # Aquí puedes agregar más URLs de tus apps si tienes
     # Ejemplo:
-    # path('core/', include('core.urls')),
+    # path('core/', include('core.urls')) este es solo comentario,
     path('empresa/<int:empresa_id>/', views.empresa_seleccionada, name='empresa_seleccionada'),
     path('agregar-producto/<uuid:articulo_id>/', views.agregar_producto, name='agregar_producto'),
 ]
