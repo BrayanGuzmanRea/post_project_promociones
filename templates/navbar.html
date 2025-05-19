@@ -70,11 +70,13 @@
                         <li><a class="dropdown-item" href="#"><i class="fasfa-user-circle me-2"></i>Perfil</a></li>
                         <li><a class="dropdown-item" href="#"><i class="fasfa-cog me-2"></i>Configuración</a></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="#"><i class="fasfa-sign-out-alt me-2"></i>Cerrar sesión</a></li>
+                        <li><a class="dropdown-item" href="{% url 'login' %}"><i class="fas fa-sign-out-alt me-2"></i>Cerrar sesión</a></li>
                     </ul>
                 </div>
                 {% else %}
-                <a href="#" class="btn btn-outline-light"><i class="fasfa-sign-in-alt me-1"></i>Iniciar sesión</a>
+                <a href="{% url 'login' %}" class="btn btn-outline-light">
+                    <i class="fas fa-sign-in-alt me-1"></i>Iniciar sesión
+                </a>
             {% endif %}
             </div>
         </div>
