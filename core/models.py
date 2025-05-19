@@ -2,6 +2,7 @@ import uuid
 from django.db import models
 from django.utils import timezone
 from post_project_promociones.choices import EstadoEntidades
+from django.contrib.auth.models import AbstractUser 
 
 class Rol(models.Model):
     rol_id = models.AutoField(primary_key=True)
@@ -49,15 +50,22 @@ class CanalCliente(models.Model):
         return self.nombre
 
 
-class Usuario(models.Model):
-    usuario_id = models.AutoField(primary_key=True)
+class Usuario(AbstractUser):
     nombre = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
-    password = models.CharField(max_length=255)
-    rol = models.ForeignKey(Rol, on_delete=models.RESTRICT, related_name='usuarios')
-    empresa = models.ForeignKey(Empresa, on_delete=models.RESTRICT, null=True, blank=True)
-    sucursal = models.ForeignKey(Sucursal, on_delete=models.RESTRICT, null=True, blank=True)
+    rol = models.ForeignKey(
+        'Rol',
+        on_delete=models.RESTRICT,
+        related_name='usuarios',
+        null=False,    
+        blank=False    
+    )
+    empresa = models.ForeignKey('Empresa', on_delete=models.RESTRICT, null=True, blank=True)
+    sucursal = models.ForeignKey('Sucursal', on_delete=models.RESTRICT, null=True, blank=True)
     estado = models.IntegerField(choices=EstadoEntidades.choices, default=EstadoEntidades.ACTIVO)
+
+    USERNAME_FIELD = 'username'
+    REQUIRED_FIELDS = ['email', 'nombre']
 
     class Meta:
         db_table = 'usuarios'
@@ -66,17 +74,24 @@ class Usuario(models.Model):
         return self.nombre
 
 
+
 class Cliente(models.Model):
     cliente_id = models.AutoField(primary_key=True)
-    nombre = models.CharField(max_length=255)
     canal_cliente = models.ForeignKey(CanalCliente, on_delete=models.RESTRICT, related_name='clientes')
+    usuario = models.ForeignKey(
+        'Usuario',
+        on_delete=models.CASCADE,
+        related_name='clientes',
+        null=True,
+        blank=True
+    )
 
     class Meta:
         db_table = 'clientes'
 
     def __str__(self):
-        return self.nombre
-
+        # Muestra el nombre del usuario asociado o un texto si no tiene usuario
+        return self.usuario.nombre if self.usuario else "Cliente sin usuario"
 
 class GrupoProveedor(models.Model):
     grupo_proveedor_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
