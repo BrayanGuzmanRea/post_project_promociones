@@ -23,15 +23,18 @@ from core import views  # Importamos las vistas de core
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-
+    #path('', TemplateView.as_view(template_name='core/index.html'), name='home'), 
+    
+    # Aquí agregaríamos las URLs de nuestras apps 
+    #path('', include('core.urls')),
     # Cambiamos la URL raíz para que use la vista home de core/views.py
     path('', views.home, name='home'),
-
     # Aquí puedes agregar más URLs de tus apps si tienes
     # Ejemplo:
     # path('core/', include('core.urls')),
     path('empresa/<int:empresa_id>/', views.empresa_seleccionada, name='empresa_seleccionada'),
     path('agregar-producto/<uuid:articulo_id>/', views.agregar_producto, name='agregar_producto'),
+
 ]
 
 if settings.DEBUG:

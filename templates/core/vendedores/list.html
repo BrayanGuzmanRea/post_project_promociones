@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block title %}Listado de Vendedores - Sistema POS{% endblock %}
+
+{% block content %}
+<h2>Listado de Vendedores</h2>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Activo</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for vendedor in vendedores %}
+        <tr>
+            <td>{{ vendedor.nombre }}</td>
+            <td>{% if vendedor.activo %}Sí{% else %}No{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="2">No hay vendedores registrados.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
