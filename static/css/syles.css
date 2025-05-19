@@ -114,4 +114,18 @@ a {
 }
 
 
+/* ---------------------------------------------------- */
+/* Estilo para el card de empresas primera vista */
+/* ---------------------------------------------------- */
 
+.card {
+  border-radius: 1.5rem;
+  border: 2px solid #5b05b7;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+}
+/* ---------------------------------------------------- */

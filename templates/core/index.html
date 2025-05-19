@@ -25,19 +25,24 @@
         </div>
     </div>
 
-    <!-- Contenedor Sucursales -->
+    <!-- Contenedor Empresas -->
     <div class="row mb-4">
         <div class="col-md-12">
-            <h3 class="mb-3">Sucursales</h3>
-            <div class="accordion" id="sucursalesAccordion">
-                {% for sucursal in sucursales %}
-                    {% include 'core/card.html' with sucursal=sucursal %}
-                {% empty %}
-                    <p>No hay sucursales disponibles.</p>
-                {% endfor %}
+            <div class="card shadow">
+                <div class="card-body">
+                    <h3 class="mb-3">Empresas</h3>
+                    <div class="d-flex justify-content-center flex-wrap gap-3">
+                        {% for empresa in empresas %}
+                            {% include 'core/card_empresa.html' with empresa=empresa %}
+                        {% empty %}
+                            <p>No hay empresas disponibles.</p>
+                        {% endfor %}
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+
 
     <!-- Widgets de accesos rápidos -->
     <div class="row">

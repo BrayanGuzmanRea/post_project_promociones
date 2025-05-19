@@ -1,17 +1,66 @@
-# Agragado por Branz Saul
 import uuid
 from django.shortcuts import render, redirect
 from .models import Usuario, Rol
 from django.contrib import messages
 from .forms import UsuarioForm
-
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.template.loader import render_to_string
 from django.core.paginator import Paginator
-from .models import Articulo
 from .forms import ArticuloForm
+from core.models import Empresa, Sucursal, Articulo
 
+def home(request):
+    """
+    Vista para la página principal que muestra las empresas.
+    """
+    empresas = Empresa.objects.all()
+    context = {
+        'empresas': empresas,
+        # Agrega aquí otras variables que necesites para tu plantilla
+    }
+    return render(request, 'core/index.html', context)
+
+def empresa_detail(request, empresa_id):
+    """
+    Vista para mostrar detalle de una empresa específica.
+    """
+    empresa = get_object_or_404(Empresa, pk=empresa_id)
+    context = {
+        'empresas': empresa,
+    }
+    return render(request, 'core/empresa_detail.html', context)
+
+def empresa_seleccionada(request, empresa_id):
+    empresa = get_object_or_404(Empresa, pk=empresa_id)
+    sucursales = Sucursal.objects.filter(empresa_id=empresa.empresa_id)
+    sucursales_con_articulos = []
+    for suc in sucursales:
+        articulos = Articulo.objects.filter(sucursal_id=suc.sucursal_id)
+        sucursales_con_articulos.append({
+            'sucursal': suc,
+            'articulos': articulos,
+        })
+
+    context = {
+        'empresa': empresa,
+        'sucursales_con_articulos': sucursales_con_articulos,
+    }
+    return render(request, 'core/empresas/empresaSeleccionada.html', context)
+
+def agregar_producto(request, articulo_id):
+    # Obtener el producto que se desea agregar al carrito
+    articulo = get_object_or_404(Articulo, pk=articulo_id)
+    
+    # Lógica para agregar el producto al carrito (esto se debe implementar)
+    # Ejemplo de agregarlo a la sesión:
+    carrito = request.session.get('carrito', [])
+    carrito.append(articulo_id)  # Guardar solo el ID del producto, o el objeto completo si prefieres
+    request.session['carrito'] = carrito
+
+    # Redirigir al usuario a la misma página para continuar visualizando productos
+    return redirect(request.META.get('HTTP_REFERER'))
+  
 def vendedores_list(request):
     try:
         rol_vendedor = Rol.objects.get(nombre='Vendedor')  # Ajusta el nombre si es distinto
