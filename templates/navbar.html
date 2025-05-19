@@ -20,8 +20,8 @@
                         <i class="fas fa-box me-1"></i>Artículos
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="articulosDropdown">
-                        <li><a class="dropdown-item" href="#">Lista de Artículos</a></li>
-                        <li><a class="dropdown-item" href="#">Nuevo Artículo</a></li>
+                        <li><a class="dropdown-item" href="{% url 'articulos_list' %}">Lista de Artículos</a></li>
+                        <li><a class="dropdown-item" href="{% url 'articulos_list' %}">Nuevo Artículo</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="#">Grupos de Artículos</a></li>
                         <li><a class="dropdown-item" href="#">Líneas de Artículos</a></li>
@@ -34,8 +34,8 @@
                         <i class="fas fa-users me-1"></i>Usuarios
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="usuariosDropdown">
-                        <li><a class="dropdown-item" href="#">Lista de Usuarios</a></li>
-                        <li><a class="dropdown-item" href="#">Nuevo Usuario</a></li>
+                        <li><a class="dropdown-item" href="{% url 'usuarios_list' %}">Lista de Usuarios</a></li>
+                        <li><a class="dropdown-item" href="{% url 'usuario_create' %}">Nuevo Usuario</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="#">Perfiles</a></li>
                     </ul>
