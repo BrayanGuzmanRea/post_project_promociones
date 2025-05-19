@@ -54,7 +54,7 @@ Listado de Artículos - Sistema POS
               {% endif %}
             </td>
             <!-- <td>${{ articulo.listaprecio.precio_1 }}</td> -->
-            <td>->{{ articulo.empresa.nombre }}</td>
+            <td>{{ articulo.empresa.nombre }}</td>
             <td>
               <div class="btn-group btn-group-sm">
                 <a href="{% url 'articulo_detail' articulo.articulo_id %}" class="btn btn-primary" data-bs-toggle="tooltip" title="Ver detalle">
