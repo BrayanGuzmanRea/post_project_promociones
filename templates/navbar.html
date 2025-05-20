@@ -20,8 +20,8 @@
                         <i class="fas fa-box me-1"></i>Artículos
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="articulosDropdown">
-                        <li><a class="dropdown-item" href="#">Lista de Artículos</a></li>
-                        <li><a class="dropdown-item" href="#">Nuevo Artículo</a></li>
+                        <li><a class="dropdown-item" href="{% url 'articulos_list' %}">Lista de Artículos</a></li>
+                        <li><a class="dropdown-item" href="{% url 'articulos_list' %}">Nuevo Artículo</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="#">Grupos de Artículos</a></li>
                         <li><a class="dropdown-item" href="#">Líneas de Artículos</a></li>
@@ -34,21 +34,47 @@
                         <i class="fas fa-users me-1"></i>Usuarios
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="usuariosDropdown">
-                        <li><a class="dropdown-item" href="#">Lista de Usuarios</a></li>
-                        <li><a class="dropdown-item" href="#">Nuevo Usuario</a></li>
+                        <li><a class="dropdown-item" href="{% url 'usuarios_list' %}">Lista de Usuarios</a></li>
+                        <li><a class="dropdown-item" href="{% url 'usuario_create' %}">Nuevo Usuario</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#">Perfiles</a></li>
+                    </ul>
+                </li>
+                <!--Agregado por Branz Saul--> 
+                <!-- Dropdown para Vendedores -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="usuariosDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-users me-1"></i>Vendedores
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="usuariosDropdown">
+                        <li><a class="dropdown-item" href="{% url 'vendedores_list' %}">Lista de Vendedores</a></li>
+                        <li><a class="dropdown-item" href="#">Nuevo Vendedor</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="#">Perfiles</a></li>
                     </ul>
                 </li>
             </ul>
         
-            <!-- Usuario y Búsqueda -->
+            <!-- Usuario , carrito , úsqueda -->
             <div class="d-flex">
                 <form class="d-flex me-2">
                         <input class="form-control me-2" type="search" placeholder="Buscar" aria-label="Buscar">
                         <button class="btn btn-outline-light" type="submit"><i class="fas fa-search"></i></button>
                 </form>
+
+                
+
                 {% if user.is_authenticated %}
+                <!-- Botón de Carrito de Compras -->
+                <a href="{% url 'carrito' %}" class="btn btn-outline-light position-relative me-2">
+                    <i class="fas fa-shopping-cart"></i>
+                    {% if cart|length > 0 %}
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                        {{ cart|length }}
+                    </span>
+                    {% endif %}
+                </a>
+                
                 <div class="dropdown">
                     <button class="btn btn-outline-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="fas fa-user me-1"></i>{{ user.full_name|truncatechars:15 }}
@@ -57,11 +83,13 @@
                         <li><a class="dropdown-item" href="#"><i class="fasfa-user-circle me-2"></i>Perfil</a></li>
                         <li><a class="dropdown-item" href="#"><i class="fasfa-cog me-2"></i>Configuración</a></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="#"><i class="fasfa-sign-out-alt me-2"></i>Cerrar sesión</a></li>
+                        <li><a class="dropdown-item" href="{% url 'login' %}"><i class="fas fa-sign-out-alt me-2"></i>Cerrar sesión</a></li>
                     </ul>
                 </div>
                 {% else %}
-                <a href="#" class="btn btn-outline-light"><i class="fasfa-sign-in-alt me-1"></i>Iniciar sesión</a>
+                <a href="{% url 'login' %}" class="btn btn-outline-light">
+                    <i class="fas fa-sign-in-alt me-1"></i>Iniciar sesión
+                </a>
             {% endif %}
             </div>
         </div>

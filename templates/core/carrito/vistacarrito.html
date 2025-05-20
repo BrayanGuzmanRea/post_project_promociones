@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Carrito Ps
+{% endblock %}
+
+{% block content %}
+    <h2>Carrito de Compras</h2>
+    
+    <!-- Mostrar el nombre del usuario -->
+    <p>Su carrito: <strong>{{ usuario_nombre }}</strong></p>  <!-- Aquí mostramos el username del usuario -->
+    {% if articulos_carrito %}
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Código</th>
+                <th>Producto</th>
+                <th>Sucursal</th>
+                <th>Cantidad</th>
+                <th>Precio</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in articulos_carrito %}
+            <tr>
+                <td>{{ item.codigo }}</td>  <!-- Mostrar código -->
+                <td>{{ item.articulo.descripcion }}</td>
+                <td>{{ item.sucursal }}</td>  <!-- Mostrar sucursal -->
+                <td>{{ item.cantidad }}</td>
+                <td>${{ item.articulo.precio }}</td>
+                <td>${{ item.total }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div>
+    </div>
+    {% else %}
+    <p>No tienes artículos en tu carrito.</p>
+    {% endif %}
+{% endblock %}

@@ -27,7 +27,9 @@
                                 <th>Código</th>
                                 <th>Descripción</th>
                                 <th>Precio</th>
-                                <th>Acción</th>
+                                <th>Se vende por</th>
+                                <th>Cantidad</th>      
+                                <th>Acción</th> 
                             </tr>
                         </thead>
                         <tbody>
@@ -36,17 +38,19 @@
                                 <td>{{ articulo.codigo }}</td>
                                 <td>{{ articulo.descripcion }}</td>
                                 <td>${{ articulo.precio }}</td>
-                                <td>
-                                    <form action="{% url 'agregar_producto' articulo.articulo_id %}" method="post">
-                                        {% csrf_token %}
+                                <td>{{ articulo.unidad_bonificacion }}</td>
+                                <!-- Formulario inicia aquí y abarca dos columnas -->
+                                <form method="post" action="{% url 'agregar_producto' articulo.articulo_id %}">
+                                    {% csrf_token %}
+                                    <td>
+                                        <input type="number" name="cantidad" min="1" required style="width: 80px;">
+                                    </td>
+                                    <td>
                                         <button type="submit" class="btn btn-outline-primary">
                                             <i class="fas fa-shopping-cart"></i> Agregar producto
                                         </button>
-                                    </form>
-                                    <!-- Aquí deberás implementar la lógica para agregar el producto al carrito -->
-                                    <!-- Puedes usar session, base de datos o cualquier otra lógica más adelante -->
-                                     <!-- Puedes usar session, base de datos o cualquier otra lógica más adelante -->
-                                </td>
+                                    </td>
+                                </form>
                             </tr>
                             {% endfor %}
                         </tbody>

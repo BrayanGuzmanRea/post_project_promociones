@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block title %}Listado de Usuarios{% endblock %}
+
+{% block content %}
+<h2>Listado de Usuarios</h2>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Email</th>
+            <th>Rol</th>
+            <th>Empresa</th>
+            <th>Sucursal</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for usuario in usuarios %}
+        <tr>
+            <td>{{ usuario.nombre }}</td>
+            <td>{{ usuario.email }}</td>
+            <td>{{ usuario.rol.nombre }}</td>
+            <td>{{ usuario.empresa }}</td>
+            <td>{{ usuario.sucursal }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5">No hay usuarios registrados.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

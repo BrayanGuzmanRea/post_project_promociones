@@ -20,6 +20,12 @@
     <!-- Estilos personalizados -->
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/syles.css' %}" />
+    <style>
+      /* Margen inferior para mensajes */
+      .messages {
+        margin-bottom: 1rem;
+      }
+    </style>
     {% block extra_css %}{% endblock %}
   </head>
   <body>
@@ -31,7 +37,7 @@
       <div class="messages">
         {% for message in messages %}
         <div
-          class="alert alert-{{ message.tags }} alert-dismissible fadeshow"
+          class="alert alert-{{ message.tags }} alert-dismissible fade show"
           role="alert"
         >
           {{ message }}
@@ -44,7 +50,8 @@
         </div>
         {% endfor %}
       </div>
-      {% endif %} {% block content %}{% endblock %}
+      {% endif %}
+      {% block content %}{% endblock %}
     </main>
     <!-- Footer -->
     <footer class="bg-dark text-white py-4 mt-5">
@@ -61,6 +68,8 @@
       </div>
     </footer>
 
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
