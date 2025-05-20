@@ -1,131 +1,162 @@
-/* Variables de colores */
-:root {
-    --primary-dark: #7d34a7;
-    --success-dark: #1b5e20;
-    --warning-dark: #e65100;
-    --danger-dark: #b71c1c;
+/* ===========================
+   HEADER / NAVBAR
+=========================== */
+
+.navbar {
+    background-color: #3b1551 !important; /* Fondo morado oscuro */
 }
 
-/* Estilo para el cuerpo de la página */
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f5f5f5;
-    min-height: 100vh;
+.navbar-brand, .navbar-nav .nav-link {
+    color: #f4c3f4 !important; /* Texto lila claro */
+    font-weight: 600;
+    transition: color 0.3s ease;
+}
+
+.navbar-brand:hover, .navbar-nav .nav-link:hover,
+.navbar-nav .nav-link.active {
+    color: #aa86d1 !important; /* Lila medio */
+}
+
+.navbar-toggler {
+    border-color: #aa86d1 !important;
+}
+
+.navbar-toggler-icon {
+    background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke='%23aa86d1' stroke-width='2' stroke-linecap='round' stroke-miterlimit='10' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E");
+}
+
+/* Dropdown menú lila con sombra */
+.dropdown-menu {
+    background-color: #3b1551;
+    border-radius: 6px;
+    border: none;
+    box-shadow: 0 4px 12px rgba(58, 21, 81, 0.5);
+}
+
+.dropdown-item {
+    color: #f4c3f4;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
+}
+
+.dropdown-item:hover, .dropdown-item:focus {
+    background-color: #aa86d1;
+    color: #fff;
+}
+
+/* Botones usuario */
+.btn-outline-light {
+    color: #f4c3f4;
+    border-color: #aa86d1;
+    font-weight: 600;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.btn-outline-light:hover {
+    background-color: #aa86d1;
+    color: #fff;
+}
+
+/* Iconos dentro del navbar */
+.navbar .fas {
+    color: #ffffff;
+    margin-right: 0.3rem;
+}
+
+/* ===========================
+   INDEX / CARDS DE EMPRESA
+=========================== */
+
+.card {
+    background-color: #ffffff; /* Lila claro */
+    border-radius: 15px;
+    box-shadow: 0 8px 20px rgba(58, 21, 81, 0.15);
+    border: none;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
     display: flex;
     flex-direction: column;
-}
-
-main {
-    flex: 1;
-}
-
-/* Navbar y componentes de navegación */
-/* Aumentar altura del navbar */
-.navbar {
-    padding-top: 0.8rem !important;    /* antes puede ser 0.5rem, ahora sube */
-    padding-bottom: 0.8rem !important; /* antes puede ser 0.5rem, ahora sube */
-}
-
-.navbar-brand,
-.nav-link {
-    padding-top: 1.25rem !important;
-    padding-bottom: 1.25rem !important;
-    font-size: 1.3rem; /* opcional para texto un poco más grande */
-}
-
-/* Cards y contenedores */
-.card {
-    border-radius: 0.5rem;
-    border: none;
-    transition: transform 0.2s, box-shadow 0.2s;
+    justify-content: space-between;
 }
 
 .card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    transform: translateY(-5px);
+    box-shadow: 0 12px 28px rgba(58, 21, 81, 0.3);
 }
 
-.card-header {
-    font-weight: 600;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+.card .card-body {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem 1.5rem;
 }
 
-/* Botones */
-.btn {
-    border-radius: 0.4rem;
-    font-weight: 500;
+.card .card-title {
+    color: #3b1551;
+    font-weight: 700;
+    font-size: 1.5rem;
+    text-align: center;
+    user-select: none;
 }
 
-.btn-block {
-    width: 100%;
+/* Footer de la card para logo pequeño */
+.card-footer {
+    background-color: #fff;
+    border-top: 1px solid #aa86d1;
+    padding: 10px;
+    text-align: center;
+    border-radius: 0 0 15px 15px;
 }
 
-/* Fondos para los footers de tarjetas */
-.bg-primary-dark {
-    background-color: var(--primary-dark);
+.card-footer img {
+    max-height: 40px;
+    max-width: 80px;
+    object-fit: contain;
+    user-select: none;
 }
 
-.bg-success-dark {
-    background-color: var(--success-dark);
+
+
+/* ===========================
+   FOOTER
+=========================== */
+
+footer {
+    background-color: #3b1551;
+    color: hsl(0, 0%, 100%);
+    padding: 2rem 0;
+    font-weight: 400;
 }
 
-.bg-warning-dark {
-    background-color: var(--warning-dark);
+footer h5 {
+    font-weight: 700;
+    margin-bottom: 0.5rem;
 }
 
-.bg-danger-dark {
-    background-color: var(--danger-dark);
+footer p {
+    font-size: 0.9rem;
+    color: #ffffff;
 }
 
-/* Animación de hover para los enlaces */
+footer .text-md-end p {
+    font-size: 0.85rem;
+}
+
+/* ===========================
+   UTILS
+=========================== */
+
+body {
+    background-color: #fff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #ffffff;
+    min-height: 100vh;
+}
+
 a {
-    transition: all 0.3s ease;
+    text-decoration: none;
 }
 
-/* Estilos para tablas */
-.table {
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    border-radius: 0.5rem;
-    overflow: hidden;
+a:hover {
+    text-decoration: underline;
 }
-
-.table th {
-    background-color: #f8f9fa;
-    border-top: none;
-}
-
-/* Formularios */
-.form-control:focus {
-    box-shadow: 0 0 0 0.2rem rgba(35, 228, 61, 0.514);
-    border-color: #86b7fe;
-}
-
-/* Paginación */
-.page-item.active .page-link {
-    background-color: var(--primary-dark);
-    border-color: var(--primary-dark);
-}
-
-/* Adaptaciones responsivas */
-@media (max-width: 768px) {
-    .card-body {
-        padding: 1rem;
-    }
-}
-
-
-/* ---------------------------------------------------- */
-/* Estilo para el card de empresas primera vista */
-/* ---------------------------------------------------- */
-
-.card {
-  border-radius: 1.5rem;
-  border: 2px solid #5b05b7;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-}
-/* ---------------------------------------------------- */
