@@ -15,23 +15,19 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path, include
-from django.conf import settings
-from django.conf.urls.static import static
-from django.views.generic import TemplateView
+from django.urls import path, include 
+from django.conf import settings 
+from django.conf.urls.static import static 
+from django.views.generic import TemplateView 
 from django.contrib.auth import views as auth_views
-
-
-
 from core import views  # Importamos las vistas de core
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    #path('', TemplateView.as_view(template_name='core/index.html'), name='home'), 
-    
-    path('login/', auth_views.LoginView.as_view(template_name='accounts/login.html'), name='login'),
-    path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
 
+    path('login/', auth_views.LoginView.as_view(template_name='accounts/login.html'), name='login'),
+    path('logout/', auth_views.LogoutView.as_view(next_page='home'), name='logout'),
 
     # Aquí agregaríamos las URLs de nuestras apps 
     #path('', include('core.urls')),
@@ -42,12 +38,20 @@ urlpatterns = [
     # path('core/', include('core.urls')) este es solo comentario,
     path('core/', include('core.urls')),
 
+    path('', views.home, name='home'),  # Usamos esta vista para la raíz
+
     path('empresa/<int:empresa_id>/', views.empresa_seleccionada, name='empresa_seleccionada'),
     path('agregar-producto/<uuid:articulo_id>/', views.agregar_producto, name='agregar_producto'),
     path('carrito/', views.vista_carrito, name='carrito'),
 
+
+  
 ]
 
+# Configuración estática
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+
+
