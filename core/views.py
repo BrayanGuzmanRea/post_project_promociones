@@ -286,8 +286,11 @@ def vista_carrito(request):
                 'precio': articulo.precio,
                 'total': articulo.precio * detalle.cantidad,
             })
+    
+    total_venta = sum(item['total'] for item in articulos_carrito)
 
     return render(request, 'core/carrito/vistacarrito.html', {
         'articulos_carrito': articulos_carrito,
         'usuario_nombre': usuario.username,
+        'total_venta': total_venta,
     })
