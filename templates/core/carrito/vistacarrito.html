@@ -34,6 +34,75 @@
             {% endfor %}
         </tbody>
     </table>
+
+    <h3>Promociones</h3>
+    {% if promociones_aplicadas and promociones_aplicadas|length > 0 %}
+        <div class="card mb-3">
+            <div class="card-body p-3">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Código Promoción</th>
+                            <th>Descripción Promoción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for promo in promociones_aplicadas %}
+                        <tr>
+                            <td>{{ promo.promocion_id }}</td>
+                            <td>{{ promo.nombre }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% else %}
+        <p>No hay promociones aplicables a esta venta.</p>
+    {% endif %}
+
+    <h3>Beneficios de las Promociones</h3>
+    {% if beneficios_promociones and beneficios_promociones|length > 0 %}
+        <div class="card mb-3">
+            <div class="card-body p-3">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Código Producto</th>
+                            <th>Nombre</th>
+                            <th>Cantidad</th>
+                            <th>Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for beneficio in beneficios_promociones %}
+                        <tr>
+                            <td>{{ beneficio.codigo }}</td>
+                            <td>{{ beneficio.descripcion }}</td>
+                            <td>{{ beneficio.cantidad }}</td>
+                            <td>0</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% else %}
+        <p>No hay beneficios aplicables en esta venta.</p>
+    {% endif %}
+
+    <div class="d-flex flex-column align-items-end mb-3" style="max-width: 300px; margin-left: auto;">
+        <table class="table table-bordered mb-2">
+            <tbody>
+                <tr>
+                    <th>Total de venta</th>
+                    <td>${{ total_venta }}</td>
+                </tr>
+            </tbody>
+        </table>
+        <a href="#" class="btn btn-success">Confirmar Compra</a>
+    </div>
+
     <div>
     </div>
     {% else %}
