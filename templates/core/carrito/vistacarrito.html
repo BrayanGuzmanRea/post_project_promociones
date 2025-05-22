@@ -20,15 +20,14 @@
                 <th>Precio</th>
                 <th>Total</th>
                 <th>Acción</th>
-
             </tr>
         </thead>
         <tbody>
             {% for item in articulos_carrito %}
             <tr>
-                <td>{{ item.codigo }}</td>  <!-- Mostrar código -->
+                <td>{{ item.codigo }}</td>
                 <td>{{ item.articulo.descripcion }}</td>
-                <td>{{ item.sucursal }}</td>  <!-- Mostrar sucursal -->
+                <td>{{ item.sucursal }}</td>
                 <td>{{ item.cantidad }}</td>
                 <td>${{ item.articulo.precio }}</td>
                 <td>${{ item.total }}</td>
@@ -107,12 +106,24 @@
                 </tr>
             </tbody>
         </table>
-        <a href="#" class="btn btn-success">Confirmar Compra</a>
+        <div class="d-flex justify-content-end gap-2">
+            <a href="{% url 'vaciar_carrito' %}" class="btn btn-outline-danger" onclick="return confirm('¿Estás seguro de que deseas vaciar el carrito?');">
+                Vaciar Carrito
+            </a>
+            <a href="#" class="btn btn-success">Confirmar Compra</a>
+        </div>
     </div>
 
-    <div>
-    </div>
     {% else %}
     <p>No tienes artículos en tu carrito.</p>
     {% endif %}
+
+    <script>
+        window.addEventListener("pageshow", function (event) {
+            if (event.persisted || (performance.getEntriesByType("navigation")[0]?.type === "back_forward")) {
+                console.log("🔁 Página cargada desde caché de historial. Forzando recarga...");
+                window.location.reload(true);  // recarga desde el servidor
+            }
+        });
+    </script>
 {% endblock %}

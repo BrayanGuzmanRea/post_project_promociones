@@ -366,3 +366,15 @@ def eliminar_detalle_carrito(request, detalle_id):
         detalle.delete()
 
     return redirect('vista_carrito')  # Redirige al carrito actualizado
+
+from django.views.decorators.cache import never_cache
+
+@never_cache
+@login_required
+def vaciar_carrito(request):
+    carrito = Carrito.objects.filter(usuario=request.user).order_by('-fecha_creacion').first()
+
+    if carrito:
+        carrito.detalle_carritos.all().delete()
+
+    return redirect('vista_carrito')

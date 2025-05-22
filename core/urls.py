@@ -33,5 +33,7 @@ urlpatterns = [
     #Nuevo Cambio agregado:
     path('carrito/', views.vista_carrito, name='vista_carrito'),
     path('carrito/eliminar/<int:detalle_id>/', views.eliminar_detalle_carrito, name='eliminar_detalle_carrito'),
+    path('carrito/vaciar/', views.vaciar_carrito, name='vaciar_carrito'),
+
 
 ]
