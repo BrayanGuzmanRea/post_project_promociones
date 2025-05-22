@@ -94,31 +94,32 @@ def agregar_producto(request, articulo_id):
 
     return redirect(request.META.get('HTTP_REFERER', 'home'))
 
-def vendedores_list(request):
-    try:
-        rol_vendedor = Rol.objects.get(nombre='Vendedor')  # Ajusta el nombre si es distinto
-        vendedores = Usuario.objects.filter(perfil=rol_vendedor)
-    except Rol.DoesNotExist:
-        vendedores = Usuario.objects.none()
+#Funcion sin usooo...
+# def vendedores_list(request):
+#     try:
+#         rol_vendedor = Rol.objects.get(nombre='Vendedor')  # Ajusta el nombre si es distinto
+#         vendedores = Usuario.objects.filter(perfil=rol_vendedor)
+#     except Rol.DoesNotExist:
+#         vendedores = Usuario.objects.none()
 
-    return render(request, 'core/vendedores/list.html', {'vendedores': vendedores})
+#     return render(request, 'core/vendedores/list.html', {'vendedores': vendedores})
+
+#Funcion sin usooo...
+# def usuario_create(request):
+#     if request.method == 'POST':
+#         form = UsuarioForm(request.POST)
+#         if form.is_valid():
+#             form.save()
+#             messages.success(request, 'Usuario registrado correctamente')
+#             return redirect('usuarios_list')  # Cambia por la URL que quieras
+#     else:
+#         form = UsuarioForm()
+#     return render(request, 'core/usuarios/form.html', {'form': form})
 
 
-def usuario_create(request):
-    if request.method == 'POST':
-        form = UsuarioForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Usuario registrado correctamente')
-            return redirect('usuarios_list')  # Cambia por la URL que quieras
-    else:
-        form = UsuarioForm()
-    return render(request, 'core/usuarios/form.html', {'form': form})
-
-
-def usuarios_list(request):
-    usuarios = Usuario.objects.all()
-    return render(request, 'core/usuarios/list.html', {'usuarios': usuarios})
+# def usuarios_list(request):
+#     usuarios = Usuario.objects.all()
+#     return render(request, 'core/usuarios/list.html', {'usuarios': usuarios})
 
 ###############ARTICULOS###############
 

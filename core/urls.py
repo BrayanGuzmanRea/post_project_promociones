@@ -17,9 +17,9 @@ register_converter(UUIDConverter, 'uuid')
 
 urlpatterns = [
     
-    path('vendedores/', views.vendedores_list, name='vendedores_list'),
-    path('usuarios/', views.usuarios_list, name='usuarios_list'),
-    path('usuarios/nuevo/', views.usuario_create, name='usuario_create'),
+    # path('vendedores/', views.vendedores_list, name='vendedores_list'),
+    # path('usuarios/', views.usuarios_list, name='usuarios_list'),
+    # path('usuarios/nuevo/', views.usuario_create, name='usuario_create'),
 
     path('articulos/', views.articulos_list, name='articulos_list'), 
     path('articulos/nuevo/', views.articulo_create, name='articulo_create'),
