@@ -15,6 +15,11 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.utils import timezone
 
+# Necesario para realizar las promociones
+from core.promociones import evaluar_promociones
+from core.models import CanalCliente
+
+
 
 
 
@@ -266,13 +271,46 @@ def articulo_delete(request, articulo_id):
 #Desde aqui inicia los cambios de la vista de los articulos
 
 
+# def vista_carrito(request):
+#     usuario = request.user
+
+#     # Buscar el carrito activo del usuario, si no hay, carrito es None
+#     carrito = Carrito.objects.filter(usuario=usuario).order_by('-fecha_creacion').first()
+
+#     articulos_carrito = []
+
+#     if carrito:
+#         detalles = DetalleCarrito.objects.filter(carrito=carrito).select_related('articulo', 'articulo__sucursal')
+
+#         for detalle in detalles:
+#             articulo = detalle.articulo
+#             articulos_carrito.append({
+#                 'codigo': articulo.codigo,
+#                 'articulo': articulo,
+#                 'sucursal': articulo.sucursal.nombre if articulo.sucursal else 'Sin sucursal',
+#                 'cantidad': detalle.cantidad,
+#                 'precio': articulo.precio,
+#                 'total': articulo.precio * detalle.cantidad,
+#             })
+    
+#     total_venta = sum(item['total'] for item in articulos_carrito)
+
+#     return render(request, 'core/carrito/vistacarrito.html', {
+#         'articulos_carrito': articulos_carrito,
+#         'usuario_nombre': usuario.username,
+#         'total_venta': total_venta,
+#     })
+
+from core.promociones import evaluar_promociones
+from core.models import Cliente
+
 def vista_carrito(request):
     usuario = request.user
-
-    # Buscar el carrito activo del usuario, si no hay, carrito es None
     carrito = Carrito.objects.filter(usuario=usuario).order_by('-fecha_creacion').first()
 
     articulos_carrito = []
+    promociones_aplicadas = []
+    beneficios_promociones = []
 
     if carrito:
         detalles = DetalleCarrito.objects.filter(carrito=carrito).select_related('articulo', 'articulo__sucursal')
@@ -280,6 +318,7 @@ def vista_carrito(request):
         for detalle in detalles:
             articulo = detalle.articulo
             articulos_carrito.append({
+                'id': detalle.detalle_carrito_id,  # ✅ Esta es la clave real
                 'codigo': articulo.codigo,
                 'articulo': articulo,
                 'sucursal': articulo.sucursal.nombre if articulo.sucursal else 'Sin sucursal',
@@ -287,11 +326,43 @@ def vista_carrito(request):
                 'precio': articulo.precio,
                 'total': articulo.precio * detalle.cantidad,
             })
-    
+
+        cliente = Cliente.objects.filter(usuario=usuario).first()
+        canal = cliente.canal_cliente if cliente else None
+
+        promociones_aplicadas = evaluar_promociones(
+            articulos_carrito,
+            canal
+        )
+
+
+        for promo in promociones_aplicadas:
+            for bonif in promo['bonificaciones']:
+                beneficios_promociones.append({
+                    'codigo': bonif[0].codigo,
+                    'descripcion': bonif[0].descripcion,
+                    'cantidad': bonif[1]
+                })
+
     total_venta = sum(item['total'] for item in articulos_carrito)
 
     return render(request, 'core/carrito/vistacarrito.html', {
         'articulos_carrito': articulos_carrito,
         'usuario_nombre': usuario.username,
         'total_venta': total_venta,
+        'promociones_aplicadas': [p['promocion'] for p in promociones_aplicadas],
+        'beneficios_promociones': beneficios_promociones
     })
+
+
+from .models import DetalleCarrito
+
+@login_required
+def eliminar_detalle_carrito(request, detalle_id):
+    detalle = get_object_or_404(DetalleCarrito, pk=detalle_id)
+
+    # Validar que el detalle sea del carrito del usuario actual
+    if detalle.carrito.usuario == request.user:
+        detalle.delete()
+
+    return redirect('vista_carrito')  # Redirige al carrito actualizado

@@ -19,6 +19,8 @@
                 <th>Cantidad</th>
                 <th>Precio</th>
                 <th>Total</th>
+                <th>Acción</th>
+
             </tr>
         </thead>
         <tbody>
@@ -30,6 +32,11 @@
                 <td>{{ item.cantidad }}</td>
                 <td>${{ item.articulo.precio }}</td>
                 <td>${{ item.total }}</td>
+                <td>
+                    <a href="{% url 'eliminar_detalle_carrito' detalle_id=item.id %}" class="btn btn-danger btn-sm">
+                        Eliminar
+                    </a>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
