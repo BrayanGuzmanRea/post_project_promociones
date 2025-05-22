@@ -19,17 +19,24 @@
                 <th>Cantidad</th>
                 <th>Precio</th>
                 <th>Total</th>
+                <th>Acciones</th>
             </tr>
         </thead>
         <tbody>
             {% for item in articulos_carrito %}
             <tr>
-                <td>{{ item.codigo }}</td>  <!-- Mostrar código -->
+                <td>{{ item.codigo }}</td> 
                 <td>{{ item.articulo.descripcion }}</td>
-                <td>{{ item.sucursal }}</td>  <!-- Mostrar sucursal -->
+                <td>{{ item.sucursal }}</td>
                 <td>{{ item.cantidad }}</td>
                 <td>${{ item.articulo.precio }}</td>
                 <td>${{ item.total }}</td>
+                <td>
+                    <form method="POST" action="{% url 'eliminar_detalle_carrito' item.id %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+                    </form>
+                </td>
             </tr>
             {% endfor %}
         </tbody>

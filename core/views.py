@@ -279,6 +279,7 @@ def vista_carrito(request):
         for detalle in detalles:
             articulo = detalle.articulo
             articulos_carrito.append({
+                'id': detalle.detalle_carrito_id,
                 'codigo': articulo.codigo,
                 'articulo': articulo,
                 'sucursal': articulo.sucursal.nombre if articulo.sucursal else 'Sin sucursal',
@@ -294,3 +295,9 @@ def vista_carrito(request):
         'usuario_nombre': usuario.username,
         'total_venta': total_venta,
     })
+
+def eliminar_detalle_carrito(request, detalle_id):
+    detalle = get_object_or_404(DetalleCarrito, detalle_carrito_id=detalle_id)
+    if detalle.carrito.usuario == request.user:
+        detalle.delete()
+    return redirect('cart_detail')
