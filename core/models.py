@@ -58,7 +58,8 @@ class Usuario(AbstractUser):
         on_delete=models.RESTRICT,
         related_name='usuarios',
         null=False,    
-        blank=False    
+        blank=False,
+        #default=1  # <-- Usa el ID real del rol que exista en tu tabla, cuando quieras hacer otra migracion   
     )
     empresa = models.ForeignKey('Empresa', on_delete=models.RESTRICT, null=True, blank=True)
     sucursal = models.ForeignKey('Sucursal', on_delete=models.RESTRICT, null=True, blank=True)
@@ -156,6 +157,8 @@ class Articulo(models.Model):
     afecto_detraccion = models.BooleanField(default=False)
     precio = models.DecimalField(max_digits=10, decimal_places=2)
     estado = models.IntegerField(choices=EstadoEntidades.choices, default=EstadoEntidades.ACTIVO)
+    sublinea = models.ForeignKey(SublineaArticulo, on_delete=models.RESTRICT, null=True, blank=True)
+
 
     class Meta:
         db_table = 'articulos'

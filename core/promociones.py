@@ -31,17 +31,26 @@ def evaluar_promociones(articulos_carrito, canal_cliente):
             articulo = item['articulo']
             cantidad = item['cantidad']
 
-            # Validar empresa/sucursal del artículo vs promoción
+            # Validar empresa y sucursal de promoción
             if articulo.empresa != empresa_promo:
                 continue
             if sucursal_promo and articulo.sucursal != sucursal_promo:
                 continue
 
-            if articulo.codigo in productos_promo_codigos:
+            # CASO 2 - BOLÍVAR Detergentes: línea + sublínea + grupo proveedor
+            es_bolivar = (
+                articulo.linea_articulo.nombre == "Limpieza para el hogar" and
+                articulo.sublinea and articulo.sublinea.nombre == "Detergentes" and
+                articulo.grupo_proveedor.nombre == "Bolivar"
+            )
+
+            # Validar si aplica como activador
+            if articulo.codigo in productos_promo_codigos or es_bolivar:
                 total_cantidad += cantidad
                 total_monto += articulo.precio * cantidad
 
-        print(" - Total cantidad:", total_cantidad)
+        print(" - total_cantidad:", total_cantidad)
+        print(" - total_monto:", total_monto)
 
         cumple = False
         veces = 0
@@ -49,8 +58,8 @@ def evaluar_promociones(articulos_carrito, canal_cliente):
             veces = total_cantidad // promo.cantidad_minima
             cumple = veces >= 1
         elif promo.tipo_condicion == 'monto' and promo.monto_minimo:
-            cumple = total_monto >= promo.monto_minimo
-            veces = 1 if cumple else 0
+            veces = int(total_monto // promo.monto_minimo)
+            cumple = veces >= 1
 
         print("✔️ Cumple:", cumple, " | Veces:", veces)
 
