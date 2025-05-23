@@ -1,5 +1,5 @@
 from django import forms
-from .models import Sucursal, Usuario, Rol
+from .models import GrupoProveedor, LineaArticulo, Sucursal, Usuario, Rol
 from .models import Articulo, Promocion
 
 class UsuarioForm(forms.ModelForm):
@@ -73,20 +73,29 @@ class ArticuloForm(forms.ModelForm):
 
 
 class PromocionForm(forms.ModelForm):
+    linea_articulo = forms.ModelChoiceField(
+        queryset=LineaArticulo.objects.all(), 
+        required=False,
+    )
+    grupo_proveedor = forms.ModelChoiceField(
+        queryset=GrupoProveedor.objects.all(),
+        required=False,
+    )
+
+    
     class Meta:
         model = Promocion
         fields = [
             'nombre', 'empresa', 'sucursal', 'canal_cliente',
             'fecha_inicio', 'fecha_fin', 'tipo_condicion',
             'monto_minimo', 'cantidad_minima',
-            'tipo_beneficio', 'estado'
+            'tipo_beneficio', 'estado',
+            'linea_articulo', 'grupo_proveedor'
         ]
         widgets = {
             'fecha_inicio': forms.DateInput(attrs={'type': 'date'}),
             'fecha_fin': forms.DateInput(attrs={'type': 'date'}),
         }
 
-    def __init__(self, *args, **kwargs):
-        super(PromocionForm, self).__init__(*args, **kwargs)
-        self.fields['sucursal'].queryset = Sucursal.objects.none()
-        self.fields['sucursal'].widget.attrs['disabled'] = 'disabled'
+
+        

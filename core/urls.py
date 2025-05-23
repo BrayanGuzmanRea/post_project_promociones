@@ -35,7 +35,11 @@ urlpatterns = [
     path('carrito/eliminar/<int:detalle_id>/', views.eliminar_detalle_carrito, name='eliminar_detalle_carrito'),
 
     #Todo lo que tiene que ver con promociones
-    path('promociones/registrar/', views.registrar_promocion, name='registrar_promocion'),
     path('api/sucursales/', views.obtener_sucursales_por_empresa, name='api_sucursales'),
+    path('api/marcas_por_empresa/', views.obtener_marcas_por_empresa, name='api_marcas_por_empresa'),
+    path('api/sucursales/', views.obtener_sucursales_por_empresa, name='api_sucursales'),
+    path('api/lineas_por_marca/', views.obtener_lineas_por_marca, name='api_lineas_por_marca'),
     path('api/articulos_por_sucursal/', views.obtener_articulos_por_sucursal, name='api_articulos_por_sucursal'),
+    path('promociones/registrar/', views.registrar_promocion, name='registrar_promocion'),
+
 ]

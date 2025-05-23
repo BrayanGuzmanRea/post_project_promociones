@@ -208,6 +208,8 @@ class Promocion(models.Model):
     tipo_beneficio = models.ForeignKey(TipoBeneficio, on_delete=models.RESTRICT, related_name='promociones')
     estado = models.IntegerField(choices=EstadoEntidades.choices, default=EstadoEntidades.ACTIVO)
 
+    linea_articulo_id = models.UUIDField(null=True, blank=True)  # Puede ser nulo y opcional
+    grupo_proveedor_id = models.UUIDField(null=True, blank=True)  # Puede ser nulo y opcional
     class Meta:
         db_table = 'promociones'
 
@@ -267,6 +269,18 @@ class Descuento(models.Model):
             return f"{self.valor_minimo} - {self.valor_maximo} → {self.porcentaje or 0}%"
         return f"> {self.valor_minimo} → {self.porcentaje or 0}%"
 
+from django.db import models
+
+class VerificacionProducto(models.Model):
+    verificacion_id = models.AutoField(primary_key=True)
+    articulo = models.ForeignKey('Articulo', on_delete=models.CASCADE, related_name='verificaciones')
+    promocion = models.ForeignKey('Promocion', on_delete=models.CASCADE, related_name='verificaciones')
+
+    def __str__(self):
+        return f"Verificación {self.verificacion_id} - Artículo {self.articulo.descripcion} - Promoción {self.promocion.nombre}"
+
+    class Meta:
+        db_table = 'verificacion_productos'
 
 
 class BonificacionAplicada(models.Model):

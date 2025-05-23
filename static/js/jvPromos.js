@@ -1,6 +1,12 @@
 document.addEventListener('DOMContentLoaded', function () {
+    // Para las 5 primeras selecciones
     const empresaSelect = document.getElementById('id_empresa');
     const sucursalSelect = document.getElementById('id_sucursal');
+    const lineaSelect = document.getElementById('id_linea_articulo');
+    const marcaSelect = document.getElementById('id_grupo_proveedor');
+    const promoLineaMarcaCheckbox = document.getElementById('id_promo_linea_marca');
+
+
     const productosCondicionContainer = document.getElementById('productos-condicion-container');
     const tipoBeneficioSelect = document.getElementById('id_tipo_beneficio');
     const cardBonificaciones = document.getElementById('card-bonificaciones');
@@ -14,10 +20,122 @@ document.addEventListener('DOMContentLoaded', function () {
     const cardCondicionCantidad = document.getElementById('card-condicion-cantidad');
     const contenedorCondicionCantidad = document.getElementById('condicion-cantidad-container');
 
-
-
     let articulosDisponibles = [];
     let articulosBonificables = [];
+
+    //Apartir de aca programar la logica para las primera 4 selecciones
+    sucursalSelect.disabled = true;
+    lineaSelect.disabled = true;
+    marcaSelect.disabled = true;
+
+    function resetSelect(select, placeholder) {
+        select.innerHTML = `<option value="">${placeholder}</option>`;
+        select.disabled = true;
+    }
+
+    empresaSelect.addEventListener('change', function () {
+        const empresaId = this.value;
+
+        if (!empresaId) {
+            resetSelect(sucursalSelect, 'Seleccione una sucursal');
+            resetSelect(lineaSelect, 'Seleccione una línea');
+            resetSelect(marcaSelect, 'Seleccione una marca');
+            return;
+        }
+
+        // Cargar sucursales por empresa
+        fetch(`/core/api/sucursales/?empresa_id=${empresaId}`)
+            .then(res => res.json())
+            .then(data => {
+                sucursalSelect.innerHTML = '<option value="">Seleccione una sucursal</option>';
+                data.forEach(sucursal => {
+                    const option = document.createElement('option');
+                    option.value = sucursal.sucursal_id;
+                    option.textContent = sucursal.nombre;
+                    sucursalSelect.appendChild(option);
+                });
+                sucursalSelect.disabled = false;
+            });
+
+        // Cargar marcas por empresa
+        fetch(`/core/api/marcas_por_empresa/?empresa_id=${empresaId}`)
+            .then(res => res.json())
+            .then(data => {
+                marcaSelect.innerHTML = '<option value="">Seleccione una marca</option>';
+                data.forEach(marca => {
+                    const option = document.createElement('option');
+                    option.value = marca.grupo_proveedor_id;
+                    option.textContent = marca.nombre;
+                    marcaSelect.appendChild(option);
+                });
+                marcaSelect.disabled = false;
+            });
+    });
+
+    marcaSelect.addEventListener('change', function () {
+        const marcaId = this.value;
+
+        if (!marcaId) {
+            lineaSelect.innerHTML = '<option value="">Seleccione una línea</option>';
+            lineaSelect.disabled = true;
+            return;
+        }
+
+        fetch(`/core/api/lineas_por_marca/?marca_id=${marcaId}`)
+            .then(res => res.json())
+            .then(data => {
+                lineaSelect.innerHTML = '<option value="">Seleccione una línea</option>';
+                data.forEach(linea => {
+                    const option = document.createElement('option');
+                    option.value = linea.linea_articulo_id;
+                    option.textContent = linea.nombre;
+                    lineaSelect.appendChild(option);
+                });
+                lineaSelect.disabled = false;
+            })
+            .catch(() => {
+                lineaSelect.innerHTML = '<option value="">Seleccione una línea</option>';
+                lineaSelect.disabled = true;
+            });
+    });
+
+
+    if (promoLineaMarcaCheckbox) {
+        function actualizarEstadoPromocionLineaMarca() {
+            const checked = promoLineaMarcaCheckbox.checked;
+
+            // Inhabilitar o habilitar contenedor de productos condición
+            const productosCondicionCard = document.getElementById('productos-condicion-container');
+            const botonesAgregar = productosCondicionCard.querySelectorAll('.btn-agregar-producto');
+            const botonesEliminar = productosCondicionCard.querySelectorAll('.btn-eliminar-producto');
+            const selectsProductos = productosCondicionCard.querySelectorAll('.productos-condicion-select');
+
+            // Inhabilitar selects y botones si está checked
+            selectsProductos.forEach(select => select.disabled = checked);
+            botonesAgregar.forEach(btn => btn.disabled = checked);
+            botonesEliminar.forEach(btn => btn.disabled = checked);
+
+            // Deshabilitar tercera opción del select tipo_condicion
+            if (tipoCondicionSelect) {
+                if (tipoCondicionSelect.options.length >= 3) {
+                    tipoCondicionSelect.options[2].disabled = checked;
+                    
+                    // Si la opción seleccionada es la tercera y se activa el checkbox, cambia a la primera opción
+                    if (checked && tipoCondicionSelect.selectedIndex === 2) {
+                        tipoCondicionSelect.selectedIndex = 0;
+                        // Opcional: dispara cambio para actualizar UI asociada
+                        tipoCondicionSelect.dispatchEvent(new Event('change'));
+                    }
+                }
+            }
+        }
+
+        // Ejecutar al cargar para establecer estado correcto
+        actualizarEstadoPromocionLineaMarca();
+
+        // Escuchar cambios en el checkbox
+        promoLineaMarcaCheckbox.addEventListener('change', actualizarEstadoPromocionLineaMarca);
+    }
 
     // Obtener la fecha actual en formato YYYY-MM-DD
     const hoy = new Date().toISOString().split('T')[0];
@@ -129,8 +247,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
 
-
-
     // Establecer la fecha mínima para "fecha inicio"
     if (inputFechaInicio) {
         inputFechaInicio.setAttribute('min', hoy);
@@ -142,25 +258,6 @@ document.addEventListener('DOMContentLoaded', function () {
             const fechaSeleccionada = this.value;
             inputFechaFin.value = ''; // limpiar si ya había una
             inputFechaFin.setAttribute('min', fechaSeleccionada);
-        });
-    }
-
-    // Cargar sucursales según empresa
-    if (empresaSelect && sucursalSelect) {
-        sucursalSelect.disabled = true;
-        empresaSelect.addEventListener('change', function () {
-            fetch(`/core/api/sucursales/?empresa_id=${this.value}`)
-                .then(res => res.json())
-                .then(data => {
-                    sucursalSelect.disabled = false;
-                    sucursalSelect.innerHTML = '<option value="">---------</option>';
-                    data.forEach(sucursal => {
-                        const option = document.createElement('option');
-                        option.value = sucursal.sucursal_id;
-                        option.textContent = sucursal.nombre;
-                        sucursalSelect.appendChild(option);
-                    });
-                });
         });
     }
 

@@ -1,7 +1,7 @@
 from datetime import timezone
 import uuid
 from django.shortcuts import render, redirect
-from .models import Bonificacion, Carrito, Descuento, DetalleCarrito, PromocionProducto, StockSucursal, Usuario, Rol
+from .models import Bonificacion, Carrito, Descuento, DetalleCarrito, GrupoProveedor, LineaArticulo, PromocionProducto, StockSucursal, Usuario, Rol, VerificacionProducto
 from django.contrib import messages
 from .forms import PromocionForm, UsuarioForm
 from django.shortcuts import render, get_object_or_404, redirect
@@ -375,9 +375,26 @@ def registrar_promocion(request):
 
 def obtener_sucursales_por_empresa(request):
     empresa_id = request.GET.get('empresa_id')
+    if not empresa_id:
+        return JsonResponse([], safe=False)
     sucursales = Sucursal.objects.filter(empresa_id=empresa_id).values('sucursal_id', 'nombre')
     return JsonResponse(list(sucursales), safe=False)
 
+def obtener_marcas_por_empresa(request):
+    empresa_id = request.GET.get('empresa_id')
+    if not empresa_id:
+        return JsonResponse([], safe=False)
+
+    marcas = GrupoProveedor.objects.filter(empresa_id=empresa_id, estado=1).values('grupo_proveedor_id', 'nombre')
+    return JsonResponse(list(marcas), safe=False)
+
+def obtener_lineas_por_marca(request):
+    marca_id = request.GET.get('marca_id')
+    if not marca_id:
+        return JsonResponse([], safe=False)
+
+    lineas = LineaArticulo.objects.filter(grupo_proveedor_id=marca_id).values('linea_articulo_id', 'nombre')
+    return JsonResponse(list(lineas), safe=False)   
 
 def obtener_articulos_por_sucursal(request):
     sucursal_id = request.GET.get('sucursal_id')
@@ -411,7 +428,20 @@ def registrar_promocion(request):
         if form.is_valid():
             try:
                 with transaction.atomic():
+                    # Guardar la promoción
                     promocion = form.save()
+
+                    # Asignar valores de marca y línea artículo a la promoción
+                    marca_id = request.POST.get('grupo_proveedor')  # Obtener el ID de la marca
+                    linea_id = request.POST.get('linea_articulo')  # Obtener el ID de la línea
+
+                    if marca_id:
+                        promocion.grupo_proveedor_id = marca_id
+
+                    if linea_id:
+                        promocion.linea_articulo_id = linea_id
+
+                    promocion.save()  # Guardar los cambios realizados en la promoción
 
                     # ✅ LOG de datos de tipo de beneficio
                     print("========== DATOS DE TIPO DE BENEFICIO ==========")
@@ -428,8 +458,6 @@ def registrar_promocion(request):
                     porcentaje_directo = request.POST.get('porcentaje_descuento')
                     print(f"→ Porcentaje de Descuento Directo: {porcentaje_directo}%")
                     print("===============================================")
-
-
 
                     # 🧩 Productos Condición (por cantidad)
                     if promocion.tipo_condicion == 'cantidad':
@@ -474,7 +502,6 @@ def registrar_promocion(request):
 
                     # 💸 Descuentos (por monto)
                     if promocion.tipo_condicion == 'monto':
-                        
                         minimos = request.POST.getlist('rangos_descuento[minimo]')
                         maximos = request.POST.getlist('rangos_descuento[maximo]')
                         porcentajes = request.POST.getlist('rangos_descuento[porcentaje]')
@@ -487,8 +514,6 @@ def registrar_promocion(request):
                                     valor_maximo=maximo or None,
                                     porcentaje=porcentaje
                                 )
-
-
 
                     # ✅ Registro por tipo de beneficio (independiente del tipo de condición)
                     print("========== REGISTRO DE TIPO DE BENEFICIO ==========")
@@ -526,10 +551,17 @@ def registrar_promocion(request):
                                 porcentaje=porcentaje_directo
                             )
 
-                        
                     else:
                         print("❌ Tipo de beneficio no válido o no seleccionado")
                     print("==============================================")
+
+                    # 🧩 Registrar los productos relacionados con la promoción en la tabla `verificacion_productos`
+                    productos_condicion_ids = request.POST.getlist('productos_condicion')
+                    for producto_id in productos_condicion_ids:
+                        VerificacionProducto.objects.create(
+                            articulo_id=producto_id,
+                            promocion=promocion
+                        )
 
                     return redirect('home')
 
