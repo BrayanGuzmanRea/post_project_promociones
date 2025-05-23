@@ -57,8 +57,8 @@ class Usuario(AbstractUser):
         'Rol',
         on_delete=models.RESTRICT,
         related_name='usuarios',
-        null=False,    
-        blank=False    
+        null=True,    
+        blank=True    
     )
     empresa = models.ForeignKey('Empresa', on_delete=models.RESTRICT, null=True, blank=True)
     sucursal = models.ForeignKey('Sucursal', on_delete=models.RESTRICT, null=True, blank=True)
@@ -191,8 +191,8 @@ class TipoBeneficio(models.Model):
 
 class Promocion(models.Model):
     TIPO_CONDICION_CHOICES = [
-        ('monto', 'Monto'),
-        ('cantidad', 'Cantidad'),
+        ('monto', 'Intervalos de Precios'),
+        ('cantidad', 'Intervalos de Cantidad'),
     ]
 
     promocion_id = models.AutoField(primary_key=True)
@@ -220,10 +220,13 @@ class PromocionProducto(models.Model):
     promocion = models.ForeignKey(Promocion, on_delete=models.CASCADE, related_name='productos')
     articulo = models.ForeignKey(Articulo, on_delete=models.RESTRICT, related_name='promocion_productos')
 
+    cantidad_min = models.PositiveIntegerField(null=True, blank=True)
+    cantidad_max = models.PositiveIntegerField(null=True, blank=True)
+    tipo_seleccion = models.CharField(max_length=20, null=True, blank=True)  # 'producto' o 'porcentaje'
+    valor = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+
     class Meta:
         db_table = 'promocion_productos'
-        unique_together = ('promocion', 'articulo')
-
 
 class PromocionLinea(models.Model):
     promocion_linea_id = models.AutoField(primary_key=True)
@@ -247,11 +250,23 @@ class Bonificacion(models.Model):
 
 class Descuento(models.Model):
     descuento_id = models.AutoField(primary_key=True)
-    promocion = models.ForeignKey(Promocion, on_delete=models.CASCADE, related_name='descuentos')
-    porcentaje = models.DecimalField(max_digits=5, decimal_places=2)
+
+    promocion = models.ForeignKey('Promocion',on_delete=models.CASCADE,related_name='descuentos')
+    valor_minimo = models.DecimalField(max_digits=10,decimal_places=2,null=True)
+    valor_maximo = models.DecimalField(max_digits=10, decimal_places=2, null=True,blank=True)
+    porcentaje = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
 
     class Meta:
         db_table = 'descuentos'
+        verbose_name = "Descuento"
+        verbose_name_plural = "Descuentos"
+        ordering = ['valor_minimo']
+
+    def __str__(self):
+        if self.valor_maximo:
+            return f"{self.valor_minimo} - {self.valor_maximo} → {self.porcentaje or 0}%"
+        return f"> {self.valor_minimo} → {self.porcentaje or 0}%"
+
 
 
 class BonificacionAplicada(models.Model):

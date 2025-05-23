@@ -34,4 +34,8 @@ urlpatterns = [
     path('carrito/', views.vista_carrito, name='vista_carrito'),
     path('carrito/eliminar/<int:detalle_id>/', views.eliminar_detalle_carrito, name='eliminar_detalle_carrito'),
 
+    #Todo lo que tiene que ver con promociones
+    path('promociones/registrar/', views.registrar_promocion, name='registrar_promocion'),
+    path('api/sucursales/', views.obtener_sucursales_por_empresa, name='api_sucursales'),
+    path('api/articulos_por_sucursal/', views.obtener_articulos_por_sucursal, name='api_articulos_por_sucursal'),
 ]
