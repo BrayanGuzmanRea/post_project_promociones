@@ -205,7 +205,7 @@ class Promocion(models.Model):
     tipo_condicion = models.CharField(max_length=10, choices=TIPO_CONDICION_CHOICES)
     monto_minimo = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     cantidad_minima = models.IntegerField(null=True, blank=True)
-    tipo_beneficio = models.ForeignKey(TipoBeneficio, on_delete=models.RESTRICT, related_name='promociones')
+    tipo_beneficio = models.ForeignKey(TipoBeneficio, on_delete=models.RESTRICT, related_name='promociones',null=True,  blank=True)
     estado = models.IntegerField(choices=EstadoEntidades.choices, default=EstadoEntidades.ACTIVO)
 
     linea_articulo_id = models.UUIDField(null=True, blank=True)  # Puede ser nulo y opcional

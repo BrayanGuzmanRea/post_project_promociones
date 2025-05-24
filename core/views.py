@@ -1,7 +1,7 @@
 from datetime import timezone
 import uuid
 from django.shortcuts import render, redirect
-from .models import Bonificacion, Carrito, Descuento, DetalleCarrito, GrupoProveedor, LineaArticulo, PromocionProducto, StockSucursal, Usuario, Rol, VerificacionProducto
+from .models import Bonificacion, BonificacionAplicada, Carrito, Cliente, Descuento, DescuentoAplicado, DetalleCarrito, GrupoProveedor, LineaArticulo, PromocionProducto, StockSucursal, Usuario, Rol, VerificacionProducto
 from django.contrib import messages
 from .forms import PromocionForm, UsuarioForm
 from django.shortcuts import render, get_object_or_404, redirect
@@ -301,8 +301,7 @@ def articulo_delete(request, articulo_id):
 #         'total_venta': total_venta,
 #     })
 
-from core.promociones import evaluar_promociones
-from core.models import Cliente
+
 
 def vista_carrito(request):
     usuario = request.user
@@ -318,7 +317,7 @@ def vista_carrito(request):
         for detalle in detalles:
             articulo = detalle.articulo
             articulos_carrito.append({
-                'id': detalle.detalle_carrito_id,  # ✅ Esta es la clave real
+                'id': detalle.detalle_carrito_id,
                 'codigo': articulo.codigo,
                 'articulo': articulo,
                 'sucursal': articulo.sucursal.nombre if articulo.sucursal else 'Sin sucursal',
@@ -327,22 +326,35 @@ def vista_carrito(request):
                 'total': articulo.precio * detalle.cantidad,
             })
 
+        # Obtener cliente asociado
         cliente = Cliente.objects.filter(usuario=usuario).first()
-        canal = cliente.canal_cliente if cliente else None
 
-        promociones_aplicadas = evaluar_promociones(
-            articulos_carrito,
-            canal
-        )
+        # Llamar a evaluar_promociones con detalles reales y cliente
+        #beneficios = evaluar_promociones(
+         #   carrito_detalle=detalles,
+          #  cliente=cliente,
+           # empresa=usuario.empresa,
+            #sucursal=usuario.sucursal
+        #)
 
+        # promociones_aplicadas son las promociones que generan bonificaciones y descuentos
+        # promociones_aplicadas = []
+        # for bonificacion in beneficios.get('bonificaciones', []):
+        #     promo = bonificacion['promocion']
+        #     if promo not in promociones_aplicadas:
+        #         promociones_aplicadas.append(promo)
+        #     beneficios_promociones.append({
+        #         'codigo': bonificacion['articulo'].codigo,
+        #         'descripcion': bonificacion['articulo'].descripcion,
+        #         'cantidad': bonificacion['cantidad'],
+        #         'valor': 0,  # Podrías poner valor monetario si es necesario
+        #     })
 
-        for promo in promociones_aplicadas:
-            for bonif in promo['bonificaciones']:
-                beneficios_promociones.append({
-                    'codigo': bonif[0].codigo,
-                    'descripcion': bonif[0].descripcion,
-                    'cantidad': bonif[1]
-                })
+        # for descuento in beneficios.get('descuentos', []):
+        #     promo = descuento['promocion']
+        #     if promo not in promociones_aplicadas:
+        #         promociones_aplicadas.append(promo)
+        #     # Si quieres mostrar descuentos en beneficios, agregalos aquí
 
     total_venta = sum(item['total'] for item in articulos_carrito)
 
@@ -350,9 +362,10 @@ def vista_carrito(request):
         'articulos_carrito': articulos_carrito,
         'usuario_nombre': usuario.username,
         'total_venta': total_venta,
-        'promociones_aplicadas': [p['promocion'] for p in promociones_aplicadas],
+        'promociones_aplicadas': promociones_aplicadas,
         'beneficios_promociones': beneficios_promociones
     })
+
 
 
 from .models import DetalleCarrito
@@ -416,7 +429,7 @@ def obtener_articulos_por_sucursal(request):
     ]
     return JsonResponse(data, safe=False)
 
-@login_required
+
 def registrar_promocion(request):
     if request.method == 'POST':
         form = PromocionForm(request.POST)
@@ -431,48 +444,34 @@ def registrar_promocion(request):
                     # Guardar la promoción
                     promocion = form.save()
 
-                    # Asignar valores de marca y línea artículo a la promoción
-                    marca_id = request.POST.get('grupo_proveedor')  # Obtener el ID de la marca
-                    linea_id = request.POST.get('linea_articulo')  # Obtener el ID de la línea
+                    # Asignar valores adicionales
+                    marca_id = request.POST.get('grupo_proveedor')
+                    linea_id = request.POST.get('linea_articulo')
 
                     if marca_id:
                         promocion.grupo_proveedor_id = marca_id
-
                     if linea_id:
                         promocion.linea_articulo_id = linea_id
 
-                    promocion.save()  # Guardar los cambios realizados en la promoción
-
-                    # ✅ LOG de datos de tipo de beneficio
-                    print("========== DATOS DE TIPO DE BENEFICIO ==========")
-                    print(f"Tipo Beneficio Seleccionado (ID): {promocion.tipo_beneficio_id}")
+                    promocion.save()
 
                     # Bonificaciones
-                    print("→ Productos Bonificados:")
                     productos_bonificados = request.POST.getlist('productos_bonificados[]')
                     cantidades_bonificadas = request.POST.getlist('cantidad_bonificada[]')
                     for art_id, cantidad in zip(productos_bonificados, cantidades_bonificadas):
-                        print(f"  - Producto ID: {art_id} | Cantidad: {cantidad}")
+                        if art_id and cantidad:
+                            Bonificacion.objects.create(
+                                promocion=promocion,
+                                articulo_id=art_id,
+                                cantidad=int(cantidad)
+                            )
 
-                    # Descuento directo
-                    porcentaje_directo = request.POST.get('porcentaje_descuento')
-                    print(f"→ Porcentaje de Descuento Directo: {porcentaje_directo}%")
-                    print("===============================================")
-
-                    # 🧩 Productos Condición (por cantidad)
+                    # Condición por cantidad
                     if promocion.tipo_condicion == 'cantidad':
-                        print("========== CONFIGURACIÓN POR CANTIDAD ==========")
-                        for key in request.POST:
-                            if key.startswith("productos_configurados["):
-                                print(f"{key}: {request.POST.getlist(key) if '[]' in key else request.POST.get(key)}")
-                        print("=================================================")
-
                         productos_ids = request.POST.getlist('productos_condicion')
-
                         for producto_id in productos_ids:
                             base = f"productos_configurados[{producto_id}]"
                             tipo_seleccion = request.POST.get(f"{base}[tipo_seleccion]")
-
                             cantidades_min = request.POST.getlist(f"{base}[cantidad_min][]")
                             cantidades_max = request.POST.getlist(f"{base}[cantidad_max][]")
                             valores = request.POST.getlist(f"{base}[valor][]")
@@ -488,24 +487,20 @@ def registrar_promocion(request):
                                         valor=valor or None,
                                     )
 
-                    # 🎁 Bonificaciones
-                    bonificados = request.POST.getlist('productos_bonificados')
-                    cantidades = request.POST.getlist('cantidad_bonificada')
+                                    # Registrar como descuento si es tipo porcentaje
+                                    if tipo_seleccion == 'porcentaje' and valor:
+                                        Descuento.objects.create(
+                                            promocion=promocion,
+                                            valor_minimo=cantidad_min or None,
+                                            valor_maximo=cantidad_max or None,
+                                            porcentaje=valor
+                                        )
 
-                    for art_id, cant in zip(bonificados, cantidades):
-                        if art_id and cant:
-                            Bonificacion.objects.create(
-                                promocion=promocion,
-                                articulo_id=art_id,
-                                cantidad=int(cant)
-                            )
-
-                    # 💸 Descuentos (por monto)
+                    # Condición por monto
                     if promocion.tipo_condicion == 'monto':
                         minimos = request.POST.getlist('rangos_descuento[minimo]')
                         maximos = request.POST.getlist('rangos_descuento[maximo]')
                         porcentajes = request.POST.getlist('rangos_descuento[porcentaje]')
-
                         for minimo, maximo, porcentaje in zip(minimos, maximos, porcentajes):
                             if porcentaje:
                                 Descuento.objects.create(
@@ -515,47 +510,7 @@ def registrar_promocion(request):
                                     porcentaje=porcentaje
                                 )
 
-                    # ✅ Registro por tipo de beneficio (independiente del tipo de condición)
-                    print("========== REGISTRO DE TIPO DE BENEFICIO ==========")
-                    tipo_beneficio = request.POST.get('tipo_beneficio')  # este es el tipo_beneficio_id
-                    print("Tipo beneficio seleccionado:", tipo_beneficio)
-
-                    if tipo_beneficio == '1':  # Bonificación
-                        print("→ Ya se registró arriba (Bonificaciones)")
-                    elif tipo_beneficio == '2':  # Descuento directo
-                        porcentaje_directo = request.POST.get('porcentaje_descuento')
-                        print("→ Porcentaje descuento directo:", porcentaje_directo)
-                        if porcentaje_directo:
-                            Descuento.objects.create(
-                                promocion=promocion,
-                                porcentaje=porcentaje_directo
-                            )
-                    elif promocion.tipo_beneficio_id == 3:  # Ambos
-                        bonificados = request.POST.getlist('productos_bonificados[]')
-                        cantidades = request.POST.getlist('cantidad_bonificada[]')
-
-                        print("→ Bonificaciones (Ambos):")
-                        for art_id, cant in zip(bonificados, cantidades):
-                            print(f"  - Artículo: {art_id} | Cantidad: {cant}")
-                            if art_id and cant:
-                                Bonificacion.objects.create(
-                                    promocion=promocion,
-                                    articulo_id=art_id,
-                                    cantidad=int(cant)
-                                )
-
-                        print("→ Porcentaje para descuento (Ambos):", porcentaje_directo)
-                        if porcentaje_directo:
-                            Descuento.objects.create(
-                                promocion=promocion,
-                                porcentaje=porcentaje_directo
-                            )
-
-                    else:
-                        print("❌ Tipo de beneficio no válido o no seleccionado")
-                    print("==============================================")
-
-                    # 🧩 Registrar los productos relacionados con la promoción en la tabla `verificacion_productos`
+                    # Registro de productos condición para verificación
                     productos_condicion_ids = request.POST.getlist('productos_condicion')
                     for producto_id in productos_condicion_ids:
                         VerificacionProducto.objects.create(
@@ -568,9 +523,30 @@ def registrar_promocion(request):
             except Exception as e:
                 print("❌ ERROR:", e)
                 messages.error(request, f"Error al registrar la promoción: {str(e)}")
+
         else:
+            print("❌ FORMULARIO NO VÁLIDO:", form.errors)
             messages.error(request, "Error en el formulario. Verifique los datos ingresados.")
     else:
         form = PromocionForm()
 
     return render(request, 'core/promociones/registrar_promocion.html', {'form': form})
+
+
+def guardar_beneficios_en_pedido(pedido, beneficios):
+    # Guardar bonificaciones
+    for bon in beneficios.get('bonificaciones', []):
+        BonificacionAplicada.objects.create(
+            pedido=pedido,
+            promocion=bon['promocion'],
+            articulo=bon['articulo'],
+            cantidad=bon['cantidad']
+        )
+    # Guardar descuentos
+    for desc in beneficios.get('descuentos', []):
+        DescuentoAplicado.objects.create(
+            pedido=pedido,
+            promocion=desc['promocion'],
+            porcentaje_descuento=desc['porcentaje'],
+            monto_descuento=desc['monto_descuento']
+        )

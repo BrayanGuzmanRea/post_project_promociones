@@ -28,6 +28,15 @@ document.addEventListener('DOMContentLoaded', function () {
     lineaSelect.disabled = true;
     marcaSelect.disabled = true;
 
+    if (tipoBeneficioSelect) {
+    tipoBeneficioSelect.required = false;
+    }
+
+    if (tipoCondicionSelect) {
+        tipoCondicionSelect.required = false;
+    }
+
+
     function resetSelect(select, placeholder) {
         select.innerHTML = `<option value="">${placeholder}</option>`;
         select.disabled = true;
@@ -404,36 +413,30 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function actualizarBonificaciones() {
         const selects = bonificacionesContainer.querySelectorAll('.select-bonificacion');
-        const seleccionados = Array.from(selects).map(s => s.value).filter(val => val !== '');
 
         selects.forEach(select => {
             const actual = select.value;
             select.innerHTML = '<option value="">Seleccione un producto</option>';
+
             articulosBonificables.forEach(art => {
-                if (!seleccionados.includes(art.articulo_id) || art.articulo_id === actual) {
-                    const option = document.createElement('option');
-                    option.value = art.articulo_id;
-                    option.textContent = `${art.codigo} - ${art.descripcion}`;
-                    if (art.articulo_id === actual) {
-                        option.selected = true;
-                    }
-                    select.appendChild(option);
+                const option = document.createElement('option');
+                option.value = art.articulo_id;
+                option.textContent = `${art.codigo} - ${art.descripcion}`;
+                if (art.articulo_id === actual) {
+                    option.selected = true;
                 }
+                select.appendChild(option);
             });
         });
 
-        // Desactivar "+" si ya no hay productos disponibles
+        // Habilitar siempre el botón "+" (ya no hay restricción por cantidad)
         const botonesAgregar = bonificacionesContainer.querySelectorAll('.btn-agregar-bonificacion');
-        const usados = seleccionados.length;
-        const max = articulosBonificables.length;
-        const desactivar = usados >= max;
-
         botonesAgregar.forEach(btn => {
-            btn.disabled = desactivar;
-            btn.title = desactivar ? 'No hay más productos disponibles' : '';
+            btn.disabled = false;
+            btn.title = 'Agregar otra bonificación';
         });
 
-        // Desactivar "X" si solo hay uno
+        // Reglas para eliminar
         const filas = bonificacionesContainer.querySelectorAll('.bonificacion-item');
         filas.forEach(fila => {
             const btnEliminar = fila.querySelector('.btn-eliminar-bonificacion');
@@ -446,6 +449,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
+
 
     if (tipoCondicionSelect) {
         tipoCondicionSelect.addEventListener('change', function () {

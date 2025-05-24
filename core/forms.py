@@ -97,5 +97,7 @@ class PromocionForm(forms.ModelForm):
             'fecha_fin': forms.DateInput(attrs={'type': 'date'}),
         }
 
+    
+
 
         
