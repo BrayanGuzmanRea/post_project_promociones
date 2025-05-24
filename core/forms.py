@@ -96,6 +96,11 @@ class PromocionForm(forms.ModelForm):
             'fecha_inicio': forms.DateInput(attrs={'type': 'date'}),
             'fecha_fin': forms.DateInput(attrs={'type': 'date'}),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super(PromocionForm, self).__init__(*args, **kwargs)
+        self.fields['tipo_condicion'].required = False
+        self.fields['tipo_beneficio'].required = False
 
     
 

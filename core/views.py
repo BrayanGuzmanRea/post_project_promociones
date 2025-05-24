@@ -441,21 +441,18 @@ def registrar_promocion(request):
         if form.is_valid():
             try:
                 with transaction.atomic():
-                    # Guardar la promoción
                     promocion = form.save()
 
-                    # Asignar valores adicionales
+                    # Asignar marca y línea si fueron seleccionadas
                     marca_id = request.POST.get('grupo_proveedor')
                     linea_id = request.POST.get('linea_articulo')
-
                     if marca_id:
                         promocion.grupo_proveedor_id = marca_id
                     if linea_id:
                         promocion.linea_articulo_id = linea_id
-
                     promocion.save()
 
-                    # Bonificaciones
+                    # 🎁 Bonificaciones
                     productos_bonificados = request.POST.getlist('productos_bonificados[]')
                     cantidades_bonificadas = request.POST.getlist('cantidad_bonificada[]')
                     for art_id, cantidad in zip(productos_bonificados, cantidades_bonificadas):
@@ -466,7 +463,7 @@ def registrar_promocion(request):
                                 cantidad=int(cantidad)
                             )
 
-                    # Condición por cantidad
+                    # 🧩 Condición por cantidad
                     if promocion.tipo_condicion == 'cantidad':
                         productos_ids = request.POST.getlist('productos_condicion')
                         for producto_id in productos_ids:
@@ -496,7 +493,7 @@ def registrar_promocion(request):
                                             porcentaje=valor
                                         )
 
-                    # Condición por monto
+                    # 💸 Condición por monto
                     if promocion.tipo_condicion == 'monto':
                         minimos = request.POST.getlist('rangos_descuento[minimo]')
                         maximos = request.POST.getlist('rangos_descuento[maximo]')
@@ -510,7 +507,20 @@ def registrar_promocion(request):
                                     porcentaje=porcentaje
                                 )
 
-                    # Registro de productos condición para verificación
+                    # ✅ Registro adicional si tipo de beneficio es "Descuento"
+                    tipo_beneficio = request.POST.get('tipo_beneficio')
+                    porcentaje_directo = request.POST.get('porcentaje_descuento')
+                    print("🧩 tipo_beneficio recibido:", tipo_beneficio)
+                    print("→ Porcentaje descuento directo:", porcentaje_directo)
+
+                    if tipo_beneficio == '2' or str(promocion.tipo_beneficio_id) == '2':
+                        if porcentaje_directo:
+                            Descuento.objects.create(
+                                promocion=promocion,
+                                porcentaje=porcentaje_directo
+                            )
+
+                    # 🔐 Registro de productos para verificación
                     productos_condicion_ids = request.POST.getlist('productos_condicion')
                     for producto_id in productos_condicion_ids:
                         VerificacionProducto.objects.create(
@@ -523,7 +533,6 @@ def registrar_promocion(request):
             except Exception as e:
                 print("❌ ERROR:", e)
                 messages.error(request, f"Error al registrar la promoción: {str(e)}")
-
         else:
             print("❌ FORMULARIO NO VÁLIDO:", form.errors)
             messages.error(request, "Error en el formulario. Verifique los datos ingresados.")
@@ -531,6 +540,7 @@ def registrar_promocion(request):
         form = PromocionForm()
 
     return render(request, 'core/promociones/registrar_promocion.html', {'form': form})
+
 
 
 def guardar_beneficios_en_pedido(pedido, beneficios):

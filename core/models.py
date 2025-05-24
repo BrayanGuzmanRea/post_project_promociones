@@ -202,7 +202,7 @@ class Promocion(models.Model):
     canal_cliente = models.ForeignKey(CanalCliente, on_delete=models.RESTRICT, null=True, blank=True, related_name='promociones')
     fecha_inicio = models.DateField()
     fecha_fin = models.DateField()
-    tipo_condicion = models.CharField(max_length=10, choices=TIPO_CONDICION_CHOICES)
+    tipo_condicion = models.CharField(max_length=10, choices=TIPO_CONDICION_CHOICES,null=True, blank=True)
     monto_minimo = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     cantidad_minima = models.IntegerField(null=True, blank=True)
     tipo_beneficio = models.ForeignKey(TipoBeneficio, on_delete=models.RESTRICT, related_name='promociones',null=True,  blank=True)
