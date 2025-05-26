@@ -1,10 +1,8 @@
-from decimal import Decimal
 from datetime import date
-from django.db.models import Q, Sum
-from core.models import (
-    Promocion, PromocionProducto, Bonificacion, Descuento, 
-    VerificacionProducto, Articulo, DetalleCarrito
-)
+from decimal import Decimal
+from django.utils import timezone
+from django.db.models import Q
+from .models import Bonificacion, Descuento, Promocion, EstadoEntidades, PromocionProducto, VerificacionProducto
 
 class MotorPromociones:
     """
@@ -99,6 +97,10 @@ class MotorPromociones:
         """
         Verifica si el carrito contiene los productos requeridos para la promoción
         """
+        # Verificar si es promoción por línea/marca (Casos 2, 5 del PDF)
+        if promocion.grupo_proveedor_id or promocion.linea_articulo_id:
+            return self._verificar_promocion_linea_marca(promocion, carrito_detalle)
+        
         # Obtener productos requeridos para esta promoción
         productos_requeridos = VerificacionProducto.objects.filter(promocion=promocion)
         
@@ -237,6 +239,30 @@ class MotorPromociones:
             monto_total += articulo.precio * detalle.cantidad
         
         return monto_total
+
+    def _verificar_promocion_linea_marca(self, promocion, carrito_detalle):
+        """
+        Verifica si el carrito contiene productos de la línea/marca especificada
+        """
+        if not promocion.grupo_proveedor_id and not promocion.linea_articulo_id:
+            return True  # No hay filtro específico
+        
+        for detalle in carrito_detalle:
+            articulo = detalle.articulo
+            
+            # Verificar marca si está especificada
+            if promocion.grupo_proveedor_id:
+                if str(articulo.grupo_proveedor.grupo_proveedor_id) != str(promocion.grupo_proveedor_id):
+                    continue
+            
+            # Verificar línea si está especificada
+            if promocion.linea_articulo_id:
+                if str(articulo.linea_articulo.linea_articulo_id) != str(promocion.linea_articulo_id):
+                    continue
+            
+            return True  # Encontró al menos un producto que cumple
+        
+        return False
 
     def _cumple_condicion_monto(self, monto_total, descuento):
         """
