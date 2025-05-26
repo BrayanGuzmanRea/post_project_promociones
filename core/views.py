@@ -1,7 +1,8 @@
 from datetime import timezone
+from decimal import Decimal
 import uuid
 from django.shortcuts import render, redirect
-from .models import Bonificacion, BonificacionAplicada, Carrito, Cliente, Descuento, DescuentoAplicado, DetalleCarrito, GrupoProveedor, LineaArticulo, PromocionProducto, StockSucursal, Usuario, Rol, VerificacionProducto
+from .models import Bonificacion, BonificacionAplicada, Carrito, Cliente, Descuento, DescuentoAplicado, DetalleCarrito, DetallePedido, GrupoProveedor, LineaArticulo, Pedido, PromocionProducto, StockSucursal, Usuario, Rol, VerificacionProducto
 from django.contrib import messages
 from .forms import PromocionForm, UsuarioForm
 from django.shortcuts import render, get_object_or_404, redirect
@@ -303,6 +304,81 @@ def articulo_delete(request, articulo_id):
 
 
 
+# def vista_carrito(request):
+#     usuario = request.user
+#     carrito = Carrito.objects.filter(usuario=usuario).order_by('-fecha_creacion').first()
+
+#     articulos_carrito = []
+#     promociones_aplicadas = []
+#     beneficios_promociones = []
+
+#     if carrito:
+#         detalles = DetalleCarrito.objects.filter(carrito=carrito).select_related('articulo', 'articulo__sucursal')
+
+#         for detalle in detalles:
+#             articulo = detalle.articulo
+#             articulos_carrito.append({
+#                 'id': detalle.detalle_carrito_id,
+#                 'codigo': articulo.codigo,
+#                 'articulo': articulo,
+#                 'sucursal': articulo.sucursal.nombre if articulo.sucursal else 'Sin sucursal',
+#                 'cantidad': detalle.cantidad,
+#                 'precio': articulo.precio,
+#                 'total': articulo.precio * detalle.cantidad,
+#             })
+
+#         # Obtener cliente asociado
+#         cliente = Cliente.objects.filter(usuario=usuario).first()
+
+#         # Llamar a evaluar_promociones con detalles reales y cliente
+#         #beneficios = evaluar_promociones(
+#          #   carrito_detalle=detalles,
+#           #  cliente=cliente,
+#            # empresa=usuario.empresa,
+#             #sucursal=usuario.sucursal
+#         #)
+
+#         # promociones_aplicadas son las promociones que generan bonificaciones y descuentos
+#         # promociones_aplicadas = []
+#         # for bonificacion in beneficios.get('bonificaciones', []):
+#         #     promo = bonificacion['promocion']
+#         #     if promo not in promociones_aplicadas:
+#         #         promociones_aplicadas.append(promo)
+#         #     beneficios_promociones.append({
+#         #         'codigo': bonificacion['articulo'].codigo,
+#         #         'descripcion': bonificacion['articulo'].descripcion,
+#         #         'cantidad': bonificacion['cantidad'],
+#         #         'valor': 0,  # Podrías poner valor monetario si es necesario
+#         #     })
+
+#         # for descuento in beneficios.get('descuentos', []):
+#         #     promo = descuento['promocion']
+#         #     if promo not in promociones_aplicadas:
+#         #         promociones_aplicadas.append(promo)
+#         #     # Si quieres mostrar descuentos en beneficios, agregalos aquí
+
+#     total_venta = sum(item['total'] for item in articulos_carrito)
+
+#     return render(request, 'core/carrito/vistacarrito.html', {
+#         'articulos_carrito': articulos_carrito,
+#         'usuario_nombre': usuario.username,
+#         'total_venta': total_venta,
+#         'promociones_aplicadas': promociones_aplicadas,
+#         'beneficios_promociones': beneficios_promociones
+#     })
+
+
+@login_required
+def eliminar_detalle_carrito(request, detalle_id):
+    detalle = get_object_or_404(DetalleCarrito, pk=detalle_id)
+
+    # Validar que el detalle sea del carrito del usuario actual
+    if detalle.carrito.usuario == request.user:
+        detalle.delete()
+
+    return redirect('vista_carrito')  # Redirige al carrito actualizado
+
+
 def vista_carrito(request):
     usuario = request.user
     carrito = Carrito.objects.filter(usuario=usuario).order_by('-fecha_creacion').first()
@@ -310,10 +386,13 @@ def vista_carrito(request):
     articulos_carrito = []
     promociones_aplicadas = []
     beneficios_promociones = []
+    descuentos_aplicados = []
+    total_descuento = Decimal('0')
 
     if carrito:
         detalles = DetalleCarrito.objects.filter(carrito=carrito).select_related('articulo', 'articulo__sucursal')
 
+        # Construir lista de artículos del carrito
         for detalle in detalles:
             articulo = detalle.articulo
             articulos_carrito.append({
@@ -329,56 +408,192 @@ def vista_carrito(request):
         # Obtener cliente asociado
         cliente = Cliente.objects.filter(usuario=usuario).first()
 
-        # Llamar a evaluar_promociones con detalles reales y cliente
-        #beneficios = evaluar_promociones(
-         #   carrito_detalle=detalles,
-          #  cliente=cliente,
-           # empresa=usuario.empresa,
-            #sucursal=usuario.sucursal
-        #)
+        # Evaluar promociones
+        try:
+            beneficios = evaluar_promociones(
+                carrito_detalle=detalles,
+                cliente=cliente,
+                empresa=usuario.empresa,
+                sucursal=usuario.sucursal
+            )
 
-        # promociones_aplicadas son las promociones que generan bonificaciones y descuentos
-        # promociones_aplicadas = []
-        # for bonificacion in beneficios.get('bonificaciones', []):
-        #     promo = bonificacion['promocion']
-        #     if promo not in promociones_aplicadas:
-        #         promociones_aplicadas.append(promo)
-        #     beneficios_promociones.append({
-        #         'codigo': bonificacion['articulo'].codigo,
-        #         'descripcion': bonificacion['articulo'].descripcion,
-        #         'cantidad': bonificacion['cantidad'],
-        #         'valor': 0,  # Podrías poner valor monetario si es necesario
-        #     })
+            # Procesar promociones aplicadas
+            promociones_aplicadas = beneficios.get('promociones_aplicadas', [])
+            
+            # Procesar bonificaciones
+            for bonificacion in beneficios.get('bonificaciones', []):
+                beneficios_promociones.append({
+                    'promocion': bonificacion['promocion'].nombre,
+                    'codigo': bonificacion['articulo'].codigo,
+                    'descripcion': bonificacion['articulo'].descripcion,
+                    'cantidad': bonificacion['cantidad'],
+                    'valor': 0,  # Productos gratis
+                    'tipo': 'bonificacion'
+                })
 
-        # for descuento in beneficios.get('descuentos', []):
-        #     promo = descuento['promocion']
-        #     if promo not in promociones_aplicadas:
-        #         promociones_aplicadas.append(promo)
-        #     # Si quieres mostrar descuentos en beneficios, agregalos aquí
+            # Procesar descuentos
+            for descuento in beneficios.get('descuentos', []):
+                # Calcular monto de descuento si no está calculado
+                if descuento.get('monto_descuento', 0) == 0 and descuento.get('porcentaje', 0) > 0:
+                    if descuento.get('tipo') == 'general':
+                        # Descuento general sobre el total
+                        total_carrito = sum(item['total'] for item in articulos_carrito)
+                        monto_desc = total_carrito * (Decimal(str(descuento['porcentaje'])) / 100)
+                    elif descuento.get('tipo') == 'porcentaje_producto' and descuento.get('articulo'):
+                        # Descuento específico sobre un producto
+                        for item in articulos_carrito:
+                            if item['articulo'].articulo_id == descuento['articulo'].articulo_id:
+                                monto_desc = item['total'] * (Decimal(str(descuento['porcentaje'])) / 100)
+                                break
+                        else:
+                            monto_desc = 0
+                    else:
+                        monto_desc = Decimal(str(descuento.get('monto_descuento', 0)))
+                else:
+                    monto_desc = Decimal(str(descuento.get('monto_descuento', 0)))
 
-    total_venta = sum(item['total'] for item in articulos_carrito)
+                descuentos_aplicados.append({
+                    'promocion': descuento['promocion'].nombre,
+                    'tipo': descuento.get('tipo', 'general'),
+                    'porcentaje': descuento.get('porcentaje', 0),
+                    'monto_descuento': float(monto_desc),
+                    'descripcion': f"Descuento {descuento.get('porcentaje', 0)}% - {descuento['promocion'].nombre}"
+                })
+                
+                total_descuento += monto_desc
+
+            # Mostrar errores si los hay (para debugging)
+            if beneficios.get('errores'):
+                for error in beneficios['errores']:
+                    messages.warning(request, f"Error en promociones: {error}")
+
+        except Exception as e:
+            messages.error(request, f"Error al evaluar promociones: {str(e)}")
+
+    # Calcular totales
+    subtotal = sum(item['total'] for item in articulos_carrito)
+    total_venta = subtotal - total_descuento
 
     return render(request, 'core/carrito/vistacarrito.html', {
         'articulos_carrito': articulos_carrito,
         'usuario_nombre': usuario.username,
+        'subtotal': subtotal,
+        'total_descuento': total_descuento,
         'total_venta': total_venta,
         'promociones_aplicadas': promociones_aplicadas,
-        'beneficios_promociones': beneficios_promociones
+        'beneficios_promociones': beneficios_promociones,
+        'descuentos_aplicados': descuentos_aplicados
     })
 
 
+def procesar_pedido(request):
+    """
+    Nueva vista para procesar el pedido y guardar los beneficios aplicados
+    """
+    if request.method != 'POST':
+        return redirect('vista_carrito')
+    
+    usuario = request.user
+    carrito = Carrito.objects.filter(usuario=usuario).order_by('-fecha_creacion').first()
+    
+    if not carrito:
+        messages.error(request, "No tienes productos en tu carrito")
+        return redirect('vista_carrito')
+    
+    try:
+        with transaction.atomic():
+            # Obtener datos necesarios
+            detalles = DetalleCarrito.objects.filter(carrito=carrito).select_related('articulo')
+            cliente = Cliente.objects.filter(usuario=usuario).first()
+            
+            if not cliente:
+                messages.error(request, "No se encontró información del cliente")
+                return redirect('vista_carrito')
+            
+            # Evaluar promociones una vez más para asegurar consistencia
+            beneficios = evaluar_promociones(
+                carrito_detalle=detalles,
+                cliente=cliente,
+                empresa=usuario.empresa,
+                sucursal=usuario.sucursal
+            )
+            
+            # Calcular totales
+            subtotal = sum(detalle.articulo.precio * detalle.cantidad for detalle in detalles)
+            total_descuento = Decimal('0')
+            
+            for descuento in beneficios.get('descuentos', []):
+                if descuento.get('monto_descuento'):
+                    total_descuento += Decimal(str(descuento['monto_descuento']))
+                elif descuento.get('porcentaje'):
+                    # Calcular descuento sobre subtotal
+                    desc_monto = subtotal * (Decimal(str(descuento['porcentaje'])) / 100)
+                    total_descuento += desc_monto
+            
+            total_final = subtotal - total_descuento
+            
+            # Crear el pedido
+            pedido = Pedido.objects.create(
+                cliente=cliente,
+                sucursal=usuario.sucursal or detalles.first().articulo.sucursal,
+                usuario=usuario,
+                fecha=timezone.now().date(),
+                total=total_final
+            )
+            
+            # Crear detalles del pedido
+            for detalle in detalles:
+                DetallePedido.objects.create(
+                    pedido=pedido,
+                    articulo=detalle.articulo,
+                    cantidad=detalle.cantidad,
+                    precio_unitario=detalle.articulo.precio
+                )
+            
+            # Guardar beneficios aplicados
+            guardar_beneficios_en_pedido(pedido, beneficios)
+            
+            # Limpiar carrito
+            carrito.delete()
+            
+            messages.success(request, f"Pedido #{pedido.pedido_id} creado exitosamente")
+            return redirect('home')  # o redirigir a vista de pedidos
+            
+    except Exception as e:
+        messages.error(request, f"Error al procesar el pedido: {str(e)}")
+        return redirect('vista_carrito')
 
-from .models import DetalleCarrito
 
-@login_required
-def eliminar_detalle_carrito(request, detalle_id):
-    detalle = get_object_or_404(DetalleCarrito, pk=detalle_id)
+def guardar_beneficios_en_pedido(pedido, beneficios):
+    """
+    Guarda los beneficios aplicados en el pedido (función ya existente actualizada)
+    """
+    # Guardar bonificaciones
+    for bon in beneficios.get('bonificaciones', []):
+        BonificacionAplicada.objects.create(
+            pedido=pedido,
+            promocion=bon['promocion'],
+            articulo=bon['articulo'],
+            cantidad=bon['cantidad']
+        )
+    
+    # Guardar descuentos
+    for desc in beneficios.get('descuentos', []):
+        # Calcular monto si no está calculado
+        monto_descuento = desc.get('monto_descuento', 0)
+        if monto_descuento == 0 and desc.get('porcentaje'):
+            # Necesitarías el monto base para calcular
+            monto_descuento = 0  # Por ahora, mejorar según necesidades
+        
+        DescuentoAplicado.objects.create(
+            pedido=pedido,
+            promocion=desc['promocion'],
+            porcentaje_descuento=desc.get('porcentaje', 0),
+            monto_descuento=monto_descuento
+        )
 
-    # Validar que el detalle sea del carrito del usuario actual
-    if detalle.carrito.usuario == request.user:
-        detalle.delete()
 
-    return redirect('vista_carrito')  # Redirige al carrito actualizado
+
 
 
 @login_required

@@ -33,6 +33,8 @@ urlpatterns = [
     #Nuevo Cambio agregado:
     path('carrito/', views.vista_carrito, name='vista_carrito'),
     path('carrito/eliminar/<int:detalle_id>/', views.eliminar_detalle_carrito, name='eliminar_detalle_carrito'),
+    path('carrito/procesar/', views.procesar_pedido, name='procesar_pedido'),  # Nueva URL
+
 
     #Todo lo que tiene que ver con promociones
     path('api/sucursales/', views.obtener_sucursales_por_empresa, name='api_sucursales'),
