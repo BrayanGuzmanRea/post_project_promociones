@@ -420,7 +420,7 @@ def vista_carrito(request):
             # Procesar promociones aplicadas
             promociones_aplicadas = beneficios.get('promociones_aplicadas', [])
             
-            # Procesar bonificaciones
+            # ✅ PROCESAR BONIFICACIONES CON INFORMACIÓN DE ESCALABILIDAD
             for bonificacion in beneficios.get('bonificaciones', []):
                 beneficios_promociones.append({
                     'promocion': bonificacion['promocion'].nombre,
@@ -428,10 +428,12 @@ def vista_carrito(request):
                     'descripcion': bonificacion['articulo'].descripcion,
                     'cantidad': bonificacion['cantidad'],
                     'valor': 0,  # Productos gratis
-                    'tipo': 'bonificacion'
+                    'tipo': 'bonificacion',
+                    'escalable': bonificacion.get('escalable', False),  # ← NUEVO
+                    'veces_aplicable': bonificacion.get('veces_aplicable', 1)  # ← NUEVO
                 })
 
-            # Procesar descuentos
+            # ✅ PROCESAR DESCUENTOS CON INFORMACIÓN DE ESCALABILIDAD
             for descuento in beneficios.get('descuentos', []):
                 # Calcular monto de descuento si no está calculado
                 if descuento.get('monto_descuento', 0) == 0 and descuento.get('porcentaje', 0) > 0:
@@ -457,7 +459,9 @@ def vista_carrito(request):
                     'tipo': descuento.get('tipo', 'general'),
                     'porcentaje': descuento.get('porcentaje', 0),
                     'monto_descuento': float(monto_desc),
-                    'descripcion': f"Descuento {descuento.get('porcentaje', 0)}% - {descuento['promocion'].nombre}"
+                    'descripcion': f"Descuento {descuento.get('porcentaje', 0)}% - {descuento['promocion'].nombre}",
+                    'escalable': descuento.get('escalable', False),  # ← NUEVO
+                    'veces_aplicable': descuento.get('veces_aplicable', 1)  # ← NUEVO
                 })
                 
                 total_descuento += monto_desc
@@ -469,10 +473,24 @@ def vista_carrito(request):
 
         except Exception as e:
             messages.error(request, f"Error al evaluar promociones: {str(e)}")
+            print(f"🚨 Error en vista_carrito: {str(e)}")  # Para debug
 
     # Calcular totales
     subtotal = sum(item['total'] for item in articulos_carrito)
     total_venta = subtotal - total_descuento
+
+    # ✅ AGREGAR INFORMACIÓN DE DEBUG PARA ESCALABILIDAD
+    print(f"🛒 Carrito procesado:")
+    print(f"   📦 Productos: {len(articulos_carrito)}")
+    print(f"   🎉 Promociones: {len(promociones_aplicadas)}")
+    print(f"   🎁 Bonificaciones: {len(beneficios_promociones)}")
+    for beneficio in beneficios_promociones:
+        escalable_info = f" (Escalable {beneficio['veces_aplicable']}x)" if beneficio['escalable'] else ""
+        print(f"      - {beneficio['descripcion']}: {beneficio['cantidad']} unidades{escalable_info}")
+    print(f"   💰 Descuentos: {len(descuentos_aplicados)}")
+    for descuento in descuentos_aplicados:
+        escalable_info = f" (Escalable {descuento['veces_aplicable']}x)" if descuento['escalable'] else ""
+        print(f"      - {descuento['descripcion']}: S/{descuento['monto_descuento']}{escalable_info}")
 
     return render(request, 'core/carrito/vistacarrito.html', {
         'articulos_carrito': articulos_carrito,
@@ -664,18 +682,15 @@ def guardar_beneficios_en_pedido(pedido, beneficios):
 
 
 def registrar_promocion(request):
-    print(f"🔥 Método recibido: {request.method}")  # ← AGREGAR ESTO
-    print(f"📝 Datos POST: {request.POST if request.method == 'POST' else 'Sin datos'}")  # ← Y ESTO
-    
     if request.method == 'POST':
-        return procesar_nueva_promocion(request)  # ← ESTA LÍNEA ES CLAVE
+        return procesar_nueva_promocion(request)
     else:
         form = PromocionForm()
         return render(request, 'core/promociones/registrar_promocion.html', {'form': form})
 
 def procesar_nueva_promocion(request):
     """
-    ESTA FUNCIÓN ES LA QUE PROCESA EL FORMULARIO
+    Procesa el nuevo formulario paso a paso de promociones
     """
     try:
         with transaction.atomic():
@@ -714,6 +729,7 @@ def extraer_datos_promocion_base(post_data):
         'fecha_fin': post_data.get('fecha_fin'),
         'tipo_condicion': post_data.get('tipo_condicion'),
         'tipo_beneficio_id': post_data.get('tipo_beneficio'),
+        'escalable': post_data.get('promocion_escalable') == '1',  # ← NUEVO CAMPO
         'estado': post_data.get('estado', 1)
     }
 
@@ -730,9 +746,11 @@ def crear_promocion_base(data):
         fecha_fin=data['fecha_fin'],
         tipo_condicion=data['tipo_condicion'],
         tipo_beneficio_id=data['tipo_beneficio_id'],
+        escalable=data['escalable'],  # ← NUEVO CAMPO
         estado=data['estado']
     )
-    print(f"✅ Promoción base creada: {promocion.nombre}")
+    escalable_text = " (ESCALABLE)" if data['escalable'] else ""
+    print(f"✅ Promoción base creada: {promocion.nombre}{escalable_text}")
     return promocion
 
 def configurar_filtros_productos(post_data, promocion):

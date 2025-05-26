@@ -160,6 +160,16 @@ class MotorPromociones:
         if promocion not in self.promociones_aplicadas:
             self.promociones_aplicadas.append(promocion)
 
+        # Calcular cuántas veces aplica la promoción
+        if promocion.escalable:
+            # Promoción escalable: se aplica múltiples veces
+            veces_aplicable = cantidad_carrito // (producto_promo.cantidad_min or 1)
+            print(f"🔄 Promoción escalable: {cantidad_carrito} ÷ {producto_promo.cantidad_min} = {veces_aplicable} veces")
+        else:
+            # Promoción no escalable: se aplica solo una vez si cumple la condición
+            veces_aplicable = 1 if cantidad_carrito >= (producto_promo.cantidad_min or 1) else 0
+            print(f"🎯 Promoción única: aplica {veces_aplicable} vez")
+
         # Si el tipo de selección es porcentaje, aplicar descuento
         if producto_promo.tipo_seleccion == 'porcentaje' and producto_promo.valor:
             self.descuentos.append({
@@ -167,24 +177,27 @@ class MotorPromociones:
                 'tipo': 'porcentaje_producto',
                 'porcentaje': float(producto_promo.valor),
                 'articulo': producto_promo.articulo,
-                'monto_descuento': 0  # Se calculará al aplicar
+                'monto_descuento': 0,  # Se calculará al aplicar
+                'escalable': promocion.escalable,
+                'veces_aplicable': veces_aplicable
             })
 
         # Si el tipo de selección es producto, aplicar bonificación
         elif producto_promo.tipo_seleccion == 'producto' and producto_promo.valor:
-            # Calcular cuántas veces aplica la promoción
-            veces_aplicable = cantidad_carrito // (producto_promo.cantidad_min or 1)
             cantidad_bonificada = int(producto_promo.valor) * veces_aplicable
             
             if cantidad_bonificada > 0:
                 self.bonificaciones.append({
                     'promocion': promocion,
                     'articulo': producto_promo.articulo,
-                    'cantidad': cantidad_bonificada
+                    'cantidad': cantidad_bonificada,
+                    'escalable': promocion.escalable,
+                    'veces_aplicable': veces_aplicable
                 })
+                print(f"🎁 Bonificación: {cantidad_bonificada} unidades ({veces_aplicable} veces)")
 
         # Aplicar bonificaciones adicionales de la promoción
-        self._aplicar_bonificaciones_promocion(promocion)
+        self._aplicar_bonificaciones_promocion(promocion, veces_aplicable)
 
     def _evaluar_condicion_monto(self, promocion, carrito_detalle):
         """
@@ -283,8 +296,16 @@ class MotorPromociones:
         if promocion not in self.promociones_aplicadas:
             self.promociones_aplicadas.append(promocion)
 
+        # Para promociones escalables por monto, calcular veces aplicables
+        veces_aplicable = 1
+        if promocion.escalable and promocion.tipo_condicion == 'monto' and carrito_detalle:
+            monto_total = self._calcular_monto_aplicable(promocion, carrito_detalle)
+            monto_minimo = promocion.monto_minimo or Decimal('0')
+            if monto_minimo > 0:
+                veces_aplicable = int(monto_total // monto_minimo)
+
         # Aplicar bonificaciones
-        self._aplicar_bonificaciones_promocion(promocion)
+        self._aplicar_bonificaciones_promocion(promocion, veces_aplicable)
         
         # Aplicar descuentos generales
         descuentos_generales = Descuento.objects.filter(
@@ -299,21 +320,29 @@ class MotorPromociones:
                     'promocion': promocion,
                     'tipo': 'general',
                     'porcentaje': float(descuento.porcentaje),
-                    'monto_descuento': 0  # Se calculará al aplicar
+                    'monto_descuento': 0,  # Se calculará al aplicar
+                    'escalable': promocion.escalable,
+                    'veces_aplicable': veces_aplicable
                 })
 
-    def _aplicar_bonificaciones_promocion(self, promocion):
+    def _aplicar_bonificaciones_promocion(self, promocion, veces_aplicable=1):
         """
         Aplica las bonificaciones definidas para una promoción
         """
         bonificaciones_promocion = Bonificacion.objects.filter(promocion=promocion)
         
         for bonificacion in bonificaciones_promocion:
+            # Si la promoción es escalable, multiplicar por las veces aplicables
+            cantidad_final = bonificacion.cantidad * veces_aplicable
+            
             self.bonificaciones.append({
                 'promocion': promocion,
                 'articulo': bonificacion.articulo,
-                'cantidad': bonificacion.cantidad
+                'cantidad': cantidad_final,
+                'escalable': promocion.escalable,
+                'veces_aplicable': veces_aplicable
             })
+            print(f"🎁 Bonificación adicional: {cantidad_final} unidades de {bonificacion.articulo.descripcion}")
 
     def _construir_respuesta(self):
         """

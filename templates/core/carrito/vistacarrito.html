@@ -120,9 +120,19 @@
                                 <span class="badge bg-warning text-dark">
                                     {{ beneficio.cantidad }} GRATIS
                                 </span>
+                                {% if beneficio.escalable %}
+                                <br><small class="text-success">
+                                    <i class="fas fa-infinity"></i> Escalable ({{ beneficio.veces_aplicable }}x)
+                                </small>
+                                {% endif %}
                             </td>
                             <td>
                                 <small class="text-muted">{{ beneficio.promocion }}</small>
+                                {% if beneficio.escalable %}
+                                <br><span class="badge bg-success bg-opacity-25 text-success">
+                                    <i class="fas fa-repeat"></i> Múltiples aplicaciones
+                                </span>
+                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}
@@ -152,7 +162,14 @@
                     <tbody>
                         {% for descuento in descuentos_aplicados %}
                         <tr>
-                            <td>{{ descuento.descripcion }}</td>
+                            <td>
+                                {{ descuento.descripcion }}
+                                {% if descuento.escalable %}
+                                <br><span class="badge bg-info bg-opacity-25 text-info">
+                                    <i class="fas fa-repeat"></i> Aplicado {{ descuento.veces_aplicable }}x
+                                </span>
+                                {% endif %}
+                            </td>
                             <td>
                                 {% if descuento.porcentaje > 0 %}
                                 <span class="badge bg-info">{{ descuento.porcentaje }}%</span>
@@ -295,5 +312,6 @@
     }
 }
 </style>
+
 
 {% endblock %}

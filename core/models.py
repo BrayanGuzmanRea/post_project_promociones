@@ -202,19 +202,27 @@ class Promocion(models.Model):
     canal_cliente = models.ForeignKey(CanalCliente, on_delete=models.RESTRICT, null=True, blank=True, related_name='promociones')
     fecha_inicio = models.DateField()
     fecha_fin = models.DateField()
-    tipo_condicion = models.CharField(max_length=10, choices=TIPO_CONDICION_CHOICES,null=True, blank=True)
+    tipo_condicion = models.CharField(max_length=10, choices=TIPO_CONDICION_CHOICES, null=True, blank=True)
     monto_minimo = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     cantidad_minima = models.IntegerField(null=True, blank=True)
-    tipo_beneficio = models.ForeignKey(TipoBeneficio, on_delete=models.RESTRICT, related_name='promociones',null=True,  blank=True)
+    tipo_beneficio = models.ForeignKey(TipoBeneficio, on_delete=models.RESTRICT, related_name='promociones', null=True, blank=True)
     estado = models.IntegerField(choices=EstadoEntidades.choices, default=EstadoEntidades.ACTIVO)
+    
+    # NUEVO CAMPO AGREGADO
+    escalable = models.BooleanField(
+        default=False,
+        help_text="Si está marcado, la promoción se aplica múltiples veces según cantidad/monto (Casos 1 y 2)"
+    )
 
-    linea_articulo_id = models.UUIDField(null=True, blank=True)  # Puede ser nulo y opcional
-    grupo_proveedor_id = models.UUIDField(null=True, blank=True)  # Puede ser nulo y opcional
+    linea_articulo_id = models.UUIDField(null=True, blank=True)
+    grupo_proveedor_id = models.UUIDField(null=True, blank=True)
+    
     class Meta:
         db_table = 'promociones'
 
     def __str__(self):
-        return self.nombre
+        escalable_text = " (Escalable)" if self.escalable else ""
+        return f"{self.nombre}{escalable_text}"
 
 
 class PromocionProducto(models.Model):

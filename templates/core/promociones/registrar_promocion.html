@@ -41,7 +41,7 @@
                                     </div>
 
                                     <div class="col-md-4 mb-3">
-                                        <label for="id_sucursal" class="form-label required">
+                                        <label for="id_sucursal" class="form-label">
                                             <i class="fas fa-store"></i> Sucursal
                                         </label>
                                         {{ form.sucursal }}
@@ -132,7 +132,7 @@
                                     </div>
                                     <div class="row">
                                         <div class="col-md-6 mb-3">
-                                            <label for="id_grupo_proveedor" class="form-label">
+                                            <label for="id_grupo_proveedor" class="form-label required">
                                                 <i class="fas fa-industry"></i> Marca/Proveedor
                                             </label>
                                             {{ form.grupo_proveedor }}
@@ -160,7 +160,7 @@
                                     <div id="productos-condicion-container">
                                         <div class="row mb-2 producto-condicion">
                                             <div class="col-md-10">
-                                                <select name="productos_condicion" class="form-select productos-condicion-select">
+                                                <select name="productos_condicion" class="form-select productos-condicion-select" >
                                                     <option value="">Seleccione un producto</option>
                                                 </select>
                                             </div>
@@ -244,7 +244,7 @@
                                                     <tbody id="tabla-rangos-cantidad">
                                                         <tr class="rango-cantidad-item">
                                                             <td>
-                                                                <input type="number" name="cantidad_min" class="form-control" min="1" placeholder="Ej: 4">
+                                                                <input type="number" name="cantidad_min" class="form-control" min="1" placeholder="Ej: 4" >
                                                             </td>
                                                             <td>
                                                                 <input type="number" name="cantidad_max" class="form-control" placeholder="Opcional">
@@ -304,7 +304,7 @@
                                             <tbody id="tabla-rangos-monto">
                                                 <tr class="rango-monto-item">
                                                     <td>
-                                                        <input type="number" name="monto_minimo" class="form-control" min="0" step="0.01" placeholder="Ej: 300" >
+                                                        <input type="number" name="monto_minimo" class="form-control" min="0" step="0.01" placeholder="Ej: 300">
                                                     </td>
                                                     <td>
                                                         <input type="number" name="monto_maximo" class="form-control" min="0" step="0.01" placeholder="Opcional">
@@ -343,12 +343,33 @@
                             </div>
                             <div class="card-body">
                                 <div class="row mb-3">
-                                    <div class="col-md-12">
-                                        <label for="id_tipo_beneficio" class="form-label">
+                                    <div class="col-md-8">
+                                        <label for="id_tipo_beneficio" class="form-label required">
                                             <i class="fas fa-star"></i> Tipo de Beneficio
                                         </label>
                                         {{ form.tipo_beneficio }}
                                         <div class="form-text">Seleccione qué tipo de beneficio recibirá el cliente cuando se active la promoción</div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card bg-light border-warning">
+                                            <div class="card-body">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="promocion_escalable" name="promocion_escalable" value="1">
+                                                    <label class="form-check-label fw-bold text-primary" for="promocion_escalable">
+                                                        <i class="fas fa-infinity"></i> Promoción Escalable
+                                                    </label>
+                                                </div>
+                                                <small class="text-muted mt-2 d-block">
+                                                    <strong>Casos 1 y 2:</strong> La promoción se aplica múltiples veces según la cantidad/monto.
+                                                </small>
+                                                <div class="mt-2 p-2 bg-warning bg-opacity-10 rounded">
+                                                    <strong>Ejemplo:</strong><br>
+                                                    • 4 cajas → 2 gratis<br>
+                                                    • 8 cajas → 4 gratis<br>
+                                                    • 12 cajas → 6 gratis
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -635,4 +656,5 @@
     animation: slideDown 0.3s ease;
 }
 </style>
+
 {% endblock %}

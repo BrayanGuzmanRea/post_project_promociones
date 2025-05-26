@@ -81,8 +81,18 @@ class PromocionForm(forms.ModelForm):
         queryset=GrupoProveedor.objects.all(),
         required=False,
     )
-
     
+    # NUEVO CAMPO AGREGADO
+    escalable = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={
+            'class': 'form-check-input',
+            'id': 'promocion_escalable'
+        }),
+        help_text='Marque si la promoción se aplica múltiples veces según cantidad/monto (Casos 1 y 2)',
+        label='Promoción Escalable'
+    )
+
     class Meta:
         model = Promocion
         fields = [
@@ -90,7 +100,8 @@ class PromocionForm(forms.ModelForm):
             'fecha_inicio', 'fecha_fin', 'tipo_condicion',
             'monto_minimo', 'cantidad_minima',
             'tipo_beneficio', 'estado',
-            'linea_articulo', 'grupo_proveedor'
+            'linea_articulo', 'grupo_proveedor',
+            'escalable'  # ← AGREGADO AQUÍ
         ]
         widgets = {
             'fecha_inicio': forms.DateInput(attrs={'type': 'date'}),
@@ -101,8 +112,4 @@ class PromocionForm(forms.ModelForm):
         super(PromocionForm, self).__init__(*args, **kwargs)
         self.fields['tipo_condicion'].required = False
         self.fields['tipo_beneficio'].required = False
-
-    
-
-
-        
+        # El campo escalable ya es required=False por defecto
