@@ -505,6 +505,7 @@ def vista_carrito(request):
 
 # Agregar estas funciones a tu views.py si no las tienes
 
+@login_required
 def obtener_sucursales_por_empresa(request):
     """API para obtener sucursales filtradas por empresa"""
     empresa_id = request.GET.get('empresa_id')

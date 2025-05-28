@@ -74,7 +74,6 @@ class Usuario(AbstractUser):
         return self.nombre
 
 
-
 class Cliente(models.Model):
     cliente_id = models.AutoField(primary_key=True)
     canal_cliente = models.ForeignKey(CanalCliente, on_delete=models.RESTRICT, related_name='clientes')
@@ -208,10 +207,18 @@ class Promocion(models.Model):
     tipo_beneficio = models.ForeignKey(TipoBeneficio, on_delete=models.RESTRICT, related_name='promociones', null=True, blank=True)
     estado = models.IntegerField(choices=EstadoEntidades.choices, default=EstadoEntidades.ACTIVO)
     
-    # NUEVO CAMPO AGREGADO
+    # CAMPOS AGREGADOS PARA MEJORAS
     escalable = models.BooleanField(
         default=False,
         help_text="Si está marcado, la promoción se aplica múltiples veces según cantidad/monto (Casos 1 y 2)"
+    )
+    beneficio_configurado_en_condiciones = models.BooleanField(
+        default=False,
+        help_text="Indica si el beneficio ya se configuró en las condiciones (evita duplicación)"
+    )
+    es_promocion_combinada_por_monto = models.BooleanField(
+        default=False,
+        help_text="Indica si es una promoción del Caso 9 (bonificación + descuento por intervalos)"
     )
 
     linea_articulo_id = models.UUIDField(null=True, blank=True)
@@ -277,7 +284,48 @@ class Descuento(models.Model):
             return f"{self.valor_minimo} - {self.valor_maximo} → {self.porcentaje or 0}%"
         return f"> {self.valor_minimo} → {self.porcentaje or 0}%"
 
-from django.db import models
+
+# NUEVO MODELO PARA CASO 9
+class BonificacionPorIntervalo(models.Model):
+    """
+    Modelo para vincular bonificaciones específicas con intervalos de monto.
+    Usado en el Caso 9: promociones combinadas por monto donde cada intervalo
+    tiene su propia bonificación específica.
+    
+    Ejemplo:
+    - S/1500-3000: 5 unidades producto B + 2% descuento
+    - S/3000+: 8 unidades producto B + 3% descuento
+    """
+    bonificacion_intervalo_id = models.AutoField(primary_key=True)
+    bonificacion = models.ForeignKey(
+        Bonificacion, 
+        on_delete=models.CASCADE, 
+        related_name='intervalos_monto'
+    )
+    valor_minimo = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2,
+        help_text="Monto mínimo para esta bonificación específica"
+    )
+    valor_maximo = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        null=True, 
+        blank=True,
+        help_text="Monto máximo para esta bonificación específica. NULL = sin límite"
+    )
+    
+    class Meta:
+        db_table = 'bonificaciones_por_intervalo'
+        verbose_name = "Bonificación por Intervalo de Monto"
+        verbose_name_plural = "Bonificaciones por Intervalos de Monto"
+        ordering = ['valor_minimo']
+
+    def __str__(self):
+        if self.valor_maximo:
+            return f"S/{self.valor_minimo} - S/{self.valor_maximo}: {self.bonificacion.cantidad} unidades {self.bonificacion.articulo.descripcion}"
+        return f"S/{self.valor_minimo}+: {self.bonificacion.cantidad} unidades {self.bonificacion.articulo.descripcion}"
+
 
 class VerificacionProducto(models.Model):
     verificacion_id = models.AutoField(primary_key=True)
