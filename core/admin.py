@@ -73,6 +73,8 @@ class ClienteForm(forms.ModelForm):
         # Filtrar usuarios cuyo rol sea el ID 5
         self.fields['usuario'].queryset = Usuario.objects.filter(rol_id=5)
 
+
+# lo faltante para lo de brayan:
 @admin.register(Cliente)
 class ClienteAdmin(admin.ModelAdmin):
     form = ClienteForm
@@ -80,3 +82,9 @@ class ClienteAdmin(admin.ModelAdmin):
     search_fields = ('usuario__username', 'usuario__nombre')
     list_filter = ('canal_cliente',)
 
+@admin.register(Articulo)
+class ArticuloAdmin(admin.ModelAdmin):
+    list_display = ('codigo', 'descripcion', 'empresa', 'sucursal', 'grupo_proveedor', 'linea_articulo', 'precio', 'estado')
+    list_filter = ('empresa', 'sucursal', 'grupo_proveedor', 'linea_articulo', 'estado')
+    search_fields = ('codigo', 'descripcion', 'codigo_barras', 'codigo_ean')
+    ordering = ('codigo',)
