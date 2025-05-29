@@ -23,7 +23,7 @@ from django.db import transaction
 from django.utils import timezone
 
 # Necesario para realizar las promociones
-# from core.promociones import evaluar_promociones
+from core.promociones import evaluar_promociones
 from core.models import CanalCliente
 
 
@@ -270,8 +270,14 @@ def vista_carrito(request):
         # Obtener cliente asociado
         cliente = Cliente.objects.filter(usuario=usuario).first()
 
-        # Evaluar promociones
+        # Evaluar promociones usando la nueva función
         try:
+            print(f"\n🛒 === EVALUANDO PROMOCIONES PARA CARRITO ===")
+            print(f"👤 Usuario: {usuario.username}")
+            print(f"🎯 Cliente: {cliente}")
+            print(f"🏢 Empresa: {usuario.empresa}")
+            print(f"🏪 Sucursal: {usuario.sucursal}")
+            
             beneficios = evaluar_promociones(
                 carrito_detalle=detalles,
                 cliente=cliente,
@@ -281,6 +287,7 @@ def vista_carrito(request):
 
             # Procesar promociones aplicadas
             promociones_aplicadas = beneficios.get('promociones_aplicadas', [])
+            print(f"🎉 Promociones aplicadas: {len(promociones_aplicadas)}")
             
             # ✅ PROCESAR BONIFICACIONES CON INFORMACIÓN DE ESCALABILIDAD
             for bonificacion in beneficios.get('bonificaciones', []):
@@ -291,9 +298,11 @@ def vista_carrito(request):
                     'cantidad': bonificacion['cantidad'],
                     'valor': 0,  # Productos gratis
                     'tipo': 'bonificacion',
-                    'escalable': bonificacion.get('escalable', False),  # ← NUEVO
-                    'veces_aplicable': bonificacion.get('veces_aplicable', 1)  # ← NUEVO
+                    'escalable': bonificacion.get('escalable', False),
+                    'veces_aplicable': bonificacion.get('veces_aplicable', 1)
                 })
+                
+                print(f"🎁 Bonificación procesada: {bonificacion['cantidad']} x {bonificacion['articulo'].descripcion}")
 
             # ✅ PROCESAR DESCUENTOS CON INFORMACIÓN DE ESCALABILIDAD
             for descuento in beneficios.get('descuentos', []):
@@ -322,27 +331,32 @@ def vista_carrito(request):
                     'porcentaje': descuento.get('porcentaje', 0),
                     'monto_descuento': float(monto_desc),
                     'descripcion': f"Descuento {descuento.get('porcentaje', 0)}% - {descuento['promocion'].descripcion}",
-                    'escalable': descuento.get('escalable', False),  # ← NUEVO
-                    'veces_aplicable': descuento.get('veces_aplicable', 1)  # ← NUEVO
+                    'escalable': descuento.get('escalable', False),
+                    'veces_aplicable': descuento.get('veces_aplicable', 1)
                 })
                 
                 total_descuento += monto_desc
+                print(f"💰 Descuento procesado: {descuento.get('porcentaje', 0)}% = S/{float(monto_desc)}")
 
             # Mostrar errores si los hay (para debugging)
             if beneficios.get('errores'):
                 for error in beneficios['errores']:
                     messages.warning(request, f"Error en promociones: {error}")
+                    print(f"⚠️ Error: {error}")
 
         except Exception as e:
-            messages.error(request, f"Error al evaluar promociones: {str(e)}")
-            print(f"🚨 Error en vista_carrito: {str(e)}")  # Para debug
+            error_msg = f"Error al evaluar promociones: {str(e)}"
+            messages.error(request, error_msg)
+            print(f"🚨 {error_msg}")
+            import traceback
+            traceback.print_exc()
 
     # Calcular totales
     subtotal = sum(item['total'] for item in articulos_carrito)
     total_venta = subtotal - total_descuento
 
     # ✅ AGREGAR INFORMACIÓN DE DEBUG PARA ESCALABILIDAD
-    print(f"🛒 Carrito procesado:")
+    print(f"\n🛒 === RESUMEN FINAL DEL CARRITO ===")
     print(f"   📦 Productos: {len(articulos_carrito)}")
     print(f"   🎉 Promociones: {len(promociones_aplicadas)}")
     print(f"   🎁 Bonificaciones: {len(beneficios_promociones)}")
@@ -353,6 +367,10 @@ def vista_carrito(request):
     for descuento in descuentos_aplicados:
         escalable_info = f" (Escalable {descuento['veces_aplicable']}x)" if descuento['escalable'] else ""
         print(f"      - {descuento['descripcion']}: S/{descuento['monto_descuento']}{escalable_info}")
+    print(f"   💵 Subtotal: S/{subtotal}")
+    print(f"   🔻 Total descuentos: S/{total_descuento}")
+    print(f"   💲 TOTAL FINAL: S/{total_venta}")
+    print(f"=== FIN RESUMEN ===\n")
 
     return render(request, 'core/carrito/vistacarrito.html', {
         'articulos_carrito': articulos_carrito,
@@ -363,7 +381,7 @@ def vista_carrito(request):
         'promociones_aplicadas': promociones_aplicadas,
         'beneficios_promociones': beneficios_promociones,
         'descuentos_aplicados': descuentos_aplicados
-    })
+    }) 
 
 # Agregar estas funciones a tu views.py si no las tienes
 
@@ -538,6 +556,9 @@ def guardar_beneficios_en_pedido(pedido, beneficios):
             porcentaje_descuento=desc.get('porcentaje', 0),
             monto_descuento=monto_descuento
         )
+
+
+
 
 # Apartir de aca inicia lo que tiene que ver con registrar la promocion
 def registrar_promocion(request):
