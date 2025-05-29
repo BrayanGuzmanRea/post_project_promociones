@@ -1,615 +1,781 @@
-from datetime import date
+from datetime import timezone
 from decimal import Decimal
+import uuid
+from django.shortcuts import render, redirect
+from .models import (
+    # Modelos actualizados según nueva estructura
+    ProductosBeneficios, BonificacionAplicada, Carrito, Cliente, 
+    DescuentoAplicado, DetalleCarrito, DetallePedido, GrupoProveedor, 
+    LineaArticulo, Pedido, Promocion, Rango, ProductoBonificadoRango,
+    Beneficio, StockSucursal, Usuario, Rol, VerificacionProducto
+)
+from django.contrib import messages
+from .forms import PromocionForm, UsuarioForm
+from django.shortcuts import render, get_object_or_404, redirect
+from django.http import JsonResponse
+from django.template.loader import render_to_string
+from django.core.paginator import Paginator
+from .forms import ArticuloForm
+from core.models import Empresa, Sucursal, Articulo
+
+from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.utils import timezone
-from django.db.models import Q
-from .models import Bonificacion, BonificacionPorIntervalo, Descuento, Promocion, EstadoEntidades, PromocionProducto, VerificacionProducto
 
-class MotorPromociones:
+# Necesario para realizar las promociones
+# TEMPORALMENTE COMENTADO HASTA ACTUALIZAR promociones.py
+# from core.promociones import evaluar_promociones
+from core.models import CanalCliente
+
+
+def home(request):
     """
-    Motor de promociones COMPLETO que evalúa qué promociones aplican a un carrito
-    y calcula los beneficios correspondientes con soporte completo para Caso 9
+    Vista para la página principal que muestra las empresas.
     """
+    empresas = Empresa.objects.all()
+    context = {
+        'empresas': empresas,
+        # Agrega aquí otras variables que necesites para tu plantilla
+    }
+    return render(request, 'core/index.html', context)
+
+def empresa_detail(request, empresa_id):
+    """
+    Vista para mostrar detalle de una empresa específica.
+    """
+    empresa = get_object_or_404(Empresa, pk=empresa_id)
+    context = {
+        'empresas': empresa,
+    }
+    return render(request, 'core/empresa_detail.html', context)
+
+def empresa_seleccionada(request, empresa_id):
+    empresa = get_object_or_404(Empresa, pk=empresa_id)
+    sucursales = Sucursal.objects.filter(empresa_id=empresa.empresa_id)
+    sucursales_con_articulos = []
+    for suc in sucursales:
+        articulos = Articulo.objects.filter(sucursal_id=suc.sucursal_id)
+        sucursales_con_articulos.append({
+            'sucursal': suc,
+            'articulos': articulos,
+        })
+
+    context = {
+        'empresa': empresa,
+        'sucursales_con_articulos': sucursales_con_articulos,
+    }
+    return render(request, 'core/empresas/empresaSeleccionada.html', context)
+
+
+def agregar_producto(request, articulo_id):
+    articulo = get_object_or_404(Articulo, pk=articulo_id)
+
+    try:
+        cantidad_str = request.POST.get('cantidad', '').strip()
+        if not cantidad_str.isdigit() or int(cantidad_str) < 1:
+            messages.error(request, 'La cantidad no puede ser 0 ni estar vacía.')
+            return redirect(request.META.get('HTTP_REFERER', 'home'))
+
+        cantidad = int(cantidad_str)
+
+        usuario = request.user
+
+        with transaction.atomic():
+            carrito, created = Carrito.objects.get_or_create(
+                usuario=usuario,
+                defaults={'fecha_creacion': timezone.now()}
+            )
+
+            detalle, detalle_created = DetalleCarrito.objects.get_or_create(
+                carrito=carrito,
+                articulo=articulo,
+                defaults={'cantidad': cantidad}
+            )
+
+            if not detalle_created:
+                detalle.cantidad += cantidad
+                detalle.save()
+
+        messages.success(request, f'"{articulo.descripcion}" agregado correctamente al carrito.')
+
+    except Exception as e:
+        # Mostrar error completo para depuración
+        messages.error(request, f'No se pudo agregar a su carrito, intente nuevamente. Error: {str(e)}')
+
+    return redirect(request.META.get('HTTP_REFERER', 'home'))
+
+###############ARTICULOS###############
+
+# @login_required
+def articulos_list(request):
+    """Vista para listar artículos"""
+    articulos_list = Articulo.objects.all()
+
+    # Filtros (podrías expandir esto)
+    q = request.GET.get("q")
+    if q:
+        articulos_list = articulos_list.filter(descripcion__icontains=q)
+
+    # Paginación
+    paginator = Paginator(articulos_list, 15)  # 15 artículos por página
+    page_number = request.GET.get("page")
+    articulos = paginator.get_page(page_number)
+
+    context = {
+        "articulos": articulos,
+    }
+    return render(request, "core/articulos/new_list.html", context)
+
+#@login_required
+def articulo_detail(request, articulo_id):
+    """Vista para ver el detalle de un artículo"""
+    articulo = get_object_or_404(Articulo, articulo_id=articulo_id)
+
+    # Guardar en el historial de productos visitados
+
+    if 'viewed_products' not in request.session: 
+        request.session['viewed_products'] = [] 
     
-    def __init__(self):
-        self.promociones_aplicadas = []
-        self.bonificaciones = []
-        self.descuentos = []
-        self.errores = []
+    # Convertir UUID a string para poder guardarlo en sesión 
+    producto_actual = str(articulo.articulo_id) 
+    viewed_products = request.session['viewed_products'] 
 
-    def evaluar_promociones(self, carrito_detalle, cliente=None, empresa=None, sucursal=None):
-        """
-        Método principal que evalúa todas las promociones aplicables
-        """
+    # Eliminar si ya existe y añadir al principio 
+    if producto_actual in viewed_products: 
+        viewed_products.remove(producto_actual) 
+    
+    # Añadir al principio y mantener solo los últimos 5 
+    viewed_products.insert(0, producto_actual) 
+    request.session['viewed_products'] = viewed_products[:5] 
+    request.session.modified = True 
+    
+    # Obtener productos visitados recientemente 
+    recent_products = [] 
+    if viewed_products: 
+        recent_uuids = [uuid.UUID(id_str) for id_str in viewed_products[1:6]]  
+    
+    # Excluir el actual 
+    if recent_uuids: 
+        recent_products = Articulo.objects.filter(articulo_id__in=recent_uuids) 
+
+    context = {
+        "articulo": articulo,
+        'recent_products': recent_products,
+    }
+    return render(request, "core/articulos/detail.html", context)
+
+#@login_required
+def articulo_edit(request, articulo_id):
+    """Vista para editar un artículo existente"""
+    articulo = get_object_or_404(Articulo, articulo_id=articulo_id)
+
+    if request.method == "POST":
+        form = ArticuloForm(request.POST, instance=articulo)
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Artículo actualizado correctamente.")
+            return redirect("articulo_detail", articulo_id=articulo.articulo_id)
+    else:
+        form = ArticuloForm(instance=articulo)
+
+    context = {
+        "form": form,
+    }
+    return render(request, "core/articulos/form.html", context)
+
+#@login_required
+def articulo_create(request):
+    """Vista para crear un nuevo artículo"""
+    if request.method == "POST":
+        form = ArticuloForm(request.POST)
+
+        if form.is_valid():
+            try:
+                # Generar ID para el artículo
+                articulo = form.save(commit=False)
+                articulo.articulo_id = uuid.uuid4()
+                articulo.save()
+
+                messages.success(request, f'¡Artículo "{articulo.descripcion}"creado correctamente!')
+
+                return redirect("articulo_detail", articulo_id=articulo.articulo_id)
+            except Exception as e: 
+                messages.error(request, f'Error al crear el artículo:{str(e)}')
+
+        else: 
+            messages.warning(request, 'Por favor corrija los errores en el formulario.')  
+    else:
+        form = ArticuloForm()
+
+    context = {
+        "form": form,
+    }
+    return render(request, "core/articulos/form.html", context)
+
+#@login_required
+def articulo_delete(request, articulo_id):
+    """Vista para eliminar un artículo"""
+    articulo = get_object_or_404(Articulo, articulo_id=articulo_id)
+
+    if request.method == "POST":
+        articulo.delete()
+
+        messages.success(request, "Artículo eliminado correctamente.")
+        return redirect("articulos_list")
+
+    context = {
+        "articulo": articulo,
+    }
+    return render(request, "core/articulos/delete.html", context)
+
+#################################
+
+@login_required
+def eliminar_detalle_carrito(request, detalle_id):
+    detalle = get_object_or_404(DetalleCarrito, pk=detalle_id)
+
+    # Validar que el detalle sea del carrito del usuario actual
+    if detalle.carrito.usuario == request.user:
+        detalle.delete()
+
+    return redirect('vista_carrito')  # Redirige al carrito actualizado
+
+
+def vista_carrito(request):
+    usuario = request.user
+    carrito = Carrito.objects.filter(usuario=usuario).order_by('-fecha_creacion').first()
+
+    articulos_carrito = []
+    promociones_aplicadas = []
+    beneficios_promociones = []
+    descuentos_aplicados = []
+    total_descuento = Decimal('0')
+
+    if carrito:
+        detalles = DetalleCarrito.objects.filter(carrito=carrito).select_related('articulo', 'articulo__sucursal')
+
+        # Construir lista de artículos del carrito
+        for detalle in detalles:
+            articulo = detalle.articulo
+            articulos_carrito.append({
+                'id': detalle.detalle_carrito_id,
+                'codigo': articulo.codigo,
+                'articulo': articulo,
+                'sucursal': articulo.sucursal.nombre if articulo.sucursal else 'Sin sucursal',
+                'cantidad': detalle.cantidad,
+                'precio': articulo.precio,
+                'total': articulo.precio * detalle.cantidad,
+            })
+
+        # Obtener cliente asociado
+        cliente = Cliente.objects.filter(usuario=usuario).first()
+
+        # Evaluar promociones
         try:
-            # Reiniciar variables
-            self.promociones_aplicadas = []
-            self.bonificaciones = []
-            self.descuentos = []
-            self.errores = []
+            # TEMPORALMENTE COMENTADO HASTA ACTUALIZAR promociones.py
+            beneficios = {
+                'promociones_aplicadas': [],
+                'bonificaciones': [],
+                'descuentos': [],
+                'errores': []
+            }
+            # beneficios = evaluar_promociones(
+            #     carrito_detalle=detalles,
+            #     cliente=cliente,
+            #     empresa=usuario.empresa,
+            #     sucursal=usuario.sucursal
+            # )
 
-            if not carrito_detalle:
-                return self._construir_respuesta()
-
-            print(f"🛒 Evaluando promociones para carrito con {len(carrito_detalle)} productos")
-
-            # Obtener promociones activas
-            promociones_activas = self._obtener_promociones_activas(empresa, sucursal, cliente)
+            # Procesar promociones aplicadas
+            promociones_aplicadas = beneficios.get('promociones_aplicadas', [])
             
-            if not promociones_activas:
-                print("ℹ️ No se encontraron promociones activas")
-                return self._construir_respuesta()
+            # ✅ PROCESAR BONIFICACIONES CON INFORMACIÓN DE ESCALABILIDAD
+            for bonificacion in beneficios.get('bonificaciones', []):
+                beneficios_promociones.append({
+                    'promocion': bonificacion['promocion'].descripcion,
+                    'codigo': bonificacion['articulo'].codigo,
+                    'descripcion': bonificacion['articulo'].descripcion,
+                    'cantidad': bonificacion['cantidad'],
+                    'valor': 0,  # Productos gratis
+                    'tipo': 'bonificacion',
+                    'escalable': bonificacion.get('escalable', False),  # ← NUEVO
+                    'veces_aplicable': bonificacion.get('veces_aplicable', 1)  # ← NUEVO
+                })
 
-            print(f"🎯 Evaluando {len(promociones_activas)} promociones activas")
+            # ✅ PROCESAR DESCUENTOS CON INFORMACIÓN DE ESCALABILIDAD
+            for descuento in beneficios.get('descuentos', []):
+                # Calcular monto de descuento si no está calculado
+                if descuento.get('monto_descuento', 0) == 0 and descuento.get('porcentaje', 0) > 0:
+                    if descuento.get('tipo') == 'general':
+                        # Descuento general sobre el total
+                        total_carrito = sum(item['total'] for item in articulos_carrito)
+                        monto_desc = total_carrito * (Decimal(str(descuento['porcentaje'])) / 100)
+                    elif descuento.get('tipo') == 'porcentaje_producto' and descuento.get('articulo'):
+                        # Descuento específico sobre un producto
+                        for item in articulos_carrito:
+                            if item['articulo'].articulo_id == descuento['articulo'].articulo_id:
+                                monto_desc = item['total'] * (Decimal(str(descuento['porcentaje'])) / 100)
+                                break
+                        else:
+                            monto_desc = 0
+                    else:
+                        monto_desc = Decimal(str(descuento.get('monto_descuento', 0)))
+                else:
+                    monto_desc = Decimal(str(descuento.get('monto_descuento', 0)))
 
-            # Evaluar cada promoción
-            for promocion in promociones_activas:
-                try:
-                    print(f"\n🔍 Evaluando promoción: {promocion.nombre}")
-                    self._evaluar_promocion_individual(promocion, carrito_detalle)
-                except Exception as e:
-                    error_msg = f"Error evaluando promoción {promocion.nombre}: {str(e)}"
-                    print(f"❌ {error_msg}")
-                    self.errores.append(error_msg)
+                descuentos_aplicados.append({
+                    'promocion': descuento['promocion'].descripcion,
+                    'tipo': descuento.get('tipo', 'general'),
+                    'porcentaje': descuento.get('porcentaje', 0),
+                    'monto_descuento': float(monto_desc),
+                    'descripcion': f"Descuento {descuento.get('porcentaje', 0)}% - {descuento['promocion'].descripcion}",
+                    'escalable': descuento.get('escalable', False),  # ← NUEVO
+                    'veces_aplicable': descuento.get('veces_aplicable', 1)  # ← NUEVO
+                })
+                
+                total_descuento += monto_desc
 
-            return self._construir_respuesta()
+            # Mostrar errores si los hay (para debugging)
+            if beneficios.get('errores'):
+                for error in beneficios['errores']:
+                    messages.warning(request, f"Error en promociones: {error}")
 
         except Exception as e:
-            error_msg = f"Error general en motor de promociones: {str(e)}"
-            print(f"🚨 {error_msg}")
-            self.errores.append(error_msg)
-            return self._construir_respuesta()
+            messages.error(request, f"Error al evaluar promociones: {str(e)}")
+            print(f"🚨 Error en vista_carrito: {str(e)}")  # Para debug
 
-    def _obtener_promociones_activas(self, empresa=None, sucursal=None, cliente=None):
-        """
-        Obtiene las promociones activas según criterios de filtrado
-        """
-        hoy = date.today()
+    # Calcular totales
+    subtotal = sum(item['total'] for item in articulos_carrito)
+    total_venta = subtotal - total_descuento
+
+    # ✅ AGREGAR INFORMACIÓN DE DEBUG PARA ESCALABILIDAD
+    print(f"🛒 Carrito procesado:")
+    print(f"   📦 Productos: {len(articulos_carrito)}")
+    print(f"   🎉 Promociones: {len(promociones_aplicadas)}")
+    print(f"   🎁 Bonificaciones: {len(beneficios_promociones)}")
+    for beneficio in beneficios_promociones:
+        escalable_info = f" (Escalable {beneficio['veces_aplicable']}x)" if beneficio['escalable'] else ""
+        print(f"      - {beneficio['descripcion']}: {beneficio['cantidad']} unidades{escalable_info}")
+    print(f"   💰 Descuentos: {len(descuentos_aplicados)}")
+    for descuento in descuentos_aplicados:
+        escalable_info = f" (Escalable {descuento['veces_aplicable']}x)" if descuento['escalable'] else ""
+        print(f"      - {descuento['descripcion']}: S/{descuento['monto_descuento']}{escalable_info}")
+
+    return render(request, 'core/carrito/vistacarrito.html', {
+        'articulos_carrito': articulos_carrito,
+        'usuario_nombre': usuario.username,
+        'subtotal': subtotal,
+        'total_descuento': total_descuento,
+        'total_venta': total_venta,
+        'promociones_aplicadas': promociones_aplicadas,
+        'beneficios_promociones': beneficios_promociones,
+        'descuentos_aplicados': descuentos_aplicados
+    })
+
+# Agregar estas funciones a tu views.py si no las tienes
+
+def obtener_sucursales_por_empresa(request):
+    """API para obtener sucursales filtradas por empresa"""
+    empresa_id = request.GET.get('empresa_id')
+    if not empresa_id:
+        return JsonResponse([], safe=False)
+    
+    try:
+        sucursales = Sucursal.objects.filter(empresa_id=empresa_id).values('sucursal_id', 'nombre')
+        return JsonResponse(list(sucursales), safe=False)
+    except Exception as e:
+        return JsonResponse([], safe=False)
+
+def obtener_marcas_por_empresa(request):
+    """API para obtener marcas/proveedores filtrados por empresa"""
+    empresa_id = request.GET.get('empresa_id')
+    if not empresa_id:
+        return JsonResponse([], safe=False)
+
+    try:
+        marcas = GrupoProveedor.objects.filter(
+            empresa_id=empresa_id, 
+            estado=1
+        ).values('grupo_proveedor_id', 'nombre')
+        return JsonResponse(list(marcas), safe=False)
+    except Exception as e:
+        return JsonResponse([], safe=False)
+
+def obtener_lineas_por_marca(request):
+    """API para obtener líneas de artículos filtradas por marca"""
+    marca_id = request.GET.get('marca_id')
+    if not marca_id:
+        return JsonResponse([], safe=False)
+
+    try:
+        lineas = LineaArticulo.objects.filter(
+            grupo_proveedor_id=marca_id
+        ).values('linea_articulo_id', 'nombre')
+        return JsonResponse(list(lineas), safe=False)
+    except Exception as e:
+        return JsonResponse([], safe=False)   
+
+def obtener_articulos_por_sucursal(request):
+    """API para obtener artículos filtrados por sucursal"""
+    sucursal_id = request.GET.get('sucursal_id')
+
+    try:
+        sucursal_id = int(sucursal_id)
+    except (ValueError, TypeError):
+        return JsonResponse([], safe=False)
+
+    try:
+        articulos = Articulo.objects.filter(sucursal_id=sucursal_id)
+
+        data = [
+            {
+                'articulo_id': str(art.articulo_id),
+                'codigo': art.codigo,
+                'descripcion': art.descripcion or ''
+            }
+            for art in articulos
+        ]
+        return JsonResponse(data, safe=False)
+    except Exception as e:
+        return JsonResponse([], safe=False)
+
+
+def procesar_pedido(request):
+    """
+    Nueva vista para procesar el pedido y guardar los beneficios aplicados
+    """
+    if request.method != 'POST':
+        return redirect('vista_carrito')
+    
+    usuario = request.user
+    carrito = Carrito.objects.filter(usuario=usuario).order_by('-fecha_creacion').first()
+    
+    if not carrito:
+        messages.error(request, "No tienes productos en tu carrito")
+        return redirect('vista_carrito')
+    
+    try:
+        with transaction.atomic():
+            # Obtener datos necesarios
+            detalles = DetalleCarrito.objects.filter(carrito=carrito).select_related('articulo')
+            cliente = Cliente.objects.filter(usuario=usuario).first()
+            
+            if not cliente:
+                messages.error(request, "No se encontró información del cliente")
+                return redirect('vista_carrito')
+            
+            # Evaluar promociones una vez más para asegurar consistencia
+            # TEMPORALMENTE COMENTADO HASTA ACTUALIZAR promociones.py
+            beneficios = {
+                'promociones_aplicadas': [],
+                'bonificaciones': [],
+                'descuentos': [],
+                'errores': []
+            }
+            # beneficios = evaluar_promociones(
+            #     carrito_detalle=detalles,
+            #     cliente=cliente,
+            #     empresa=usuario.empresa,
+            #     sucursal=usuario.sucursal
+            # )
+            
+            # Calcular totales
+            subtotal = sum(detalle.articulo.precio * detalle.cantidad for detalle in detalles)
+            total_descuento = Decimal('0')
+            
+            for descuento in beneficios.get('descuentos', []):
+                if descuento.get('monto_descuento'):
+                    total_descuento += Decimal(str(descuento['monto_descuento']))
+                elif descuento.get('porcentaje'):
+                    # Calcular descuento sobre subtotal
+                    desc_monto = subtotal * (Decimal(str(descuento['porcentaje'])) / 100)
+                    total_descuento += desc_monto
+            
+            total_final = subtotal - total_descuento
+            
+            # Crear el pedido
+            pedido = Pedido.objects.create(
+                cliente=cliente,
+                sucursal=usuario.sucursal or detalles.first().articulo.sucursal,
+                usuario=usuario,
+                fecha=timezone.now().date(),
+                total=total_final
+            )
+            
+            # Crear detalles del pedido
+            for detalle in detalles:
+                DetallePedido.objects.create(
+                    pedido=pedido,
+                    articulo=detalle.articulo,
+                    cantidad=detalle.cantidad,
+                    precio_unitario=detalle.articulo.precio
+                )
+            
+            # Guardar beneficios aplicados
+            guardar_beneficios_en_pedido(pedido, beneficios)
+            
+            # Limpiar carrito
+            carrito.delete()
+            
+            messages.success(request, f"Pedido #{pedido.pedido_id} creado exitosamente")
+            return redirect('home')  # o redirigir a vista de pedidos
+            
+    except Exception as e:
+        messages.error(request, f"Error al procesar el pedido: {str(e)}")
+        return redirect('vista_carrito')
+
+
+def guardar_beneficios_en_pedido(pedido, beneficios):
+    """
+    Guarda los beneficios aplicados en el pedido (función actualizada para nueva estructura)
+    """
+    # Guardar bonificaciones
+    for bon in beneficios.get('bonificaciones', []):
+        BonificacionAplicada.objects.create(
+            pedido=pedido,
+            promocion=bon['promocion'],
+            articulo=bon['articulo'],
+            cantidad=bon['cantidad']
+        )
+    
+    # Guardar descuentos
+    for desc in beneficios.get('descuentos', []):
+        # Calcular monto si no está calculado
+        monto_descuento = desc.get('monto_descuento', 0)
+        if monto_descuento == 0 and desc.get('porcentaje'):
+            # Necesitarías el monto base para calcular
+            monto_descuento = 0  # Por ahora, mejorar según necesidades
         
-        filtros = Q(
-            fecha_inicio__lte=hoy,
-            fecha_fin__gte=hoy,
-            estado=1  # Activo
+        DescuentoAplicado.objects.create(
+            pedido=pedido,
+            promocion=desc['promocion'],
+            porcentaje_descuento=desc.get('porcentaje', 0),
+            monto_descuento=monto_descuento
         )
 
-        if empresa:
-            filtros &= Q(empresa=empresa)
-        
-        if sucursal:
-            filtros &= Q(Q(sucursal=sucursal) | Q(sucursal__isnull=True))
-        
-        if cliente and cliente.canal_cliente:
-            filtros &= Q(Q(canal_cliente=cliente.canal_cliente) | Q(canal_cliente__isnull=True))
 
-        promociones = Promocion.objects.filter(filtros).select_related(
-            'empresa', 'sucursal', 'canal_cliente', 'tipo_beneficio'
-        ).prefetch_related(
-            'productos', 'bonificaciones', 'descuentos', 'verificaciones'
-        )
+def registrar_promocion(request):
+    if request.method == 'POST':
+        return procesar_nueva_promocion(request)
+    else:
+        form = PromocionForm()
+        return render(request, 'core/promociones/registrar_promocion.html', {'form': form})
 
-        print(f"📋 Filtros aplicados - Empresa: {empresa}, Sucursal: {sucursal}, Cliente: {cliente}")
-        print(f"📅 Fecha actual: {hoy}")
-        
-        return promociones
-
-    def _evaluar_promocion_individual(self, promocion, carrito_detalle):
-        """
-        Evalúa una promoción específica contra el carrito
-        """
-        print(f"   🔎 Verificando productos condición...")
-        
-        # Verificar si hay productos específicos requeridos
-        if not self._verificar_productos_condicion(promocion, carrito_detalle):
-            print(f"   ❌ No cumple productos condición")
-            return
-
-        print(f"   ✅ Cumple productos condición")
-        print(f"   🎯 Tipo condición: {promocion.tipo_condicion}")
-
-        # Verificar condiciones según tipo
-        if promocion.tipo_condicion == 'cantidad':
-            self._evaluar_condicion_cantidad(promocion, carrito_detalle)
-        elif promocion.tipo_condicion == 'monto':
-            self._evaluar_condicion_monto(promocion, carrito_detalle)
-        else:
-            # Para promociones sin condición específica (solo verificar productos)
-            self._aplicar_beneficios_promocion(promocion, carrito_detalle)
-
-    def _verificar_productos_condicion(self, promocion, carrito_detalle):
-        """
-        Verifica si el carrito contiene los productos requeridos para la promoción
-        """
-        # Verificar si es promoción por línea/marca (Casos 2, 5 del PDF)
-        if promocion.grupo_proveedor_id or promocion.linea_articulo_id:
-            return self._verificar_promocion_linea_marca(promocion, carrito_detalle)
-        
-        # Obtener productos requeridos para esta promoción
-        productos_requeridos = VerificacionProducto.objects.filter(promocion=promocion)
-        
-        if not productos_requeridos.exists():
-            # Si no hay productos específicos requeridos, la promoción aplica
-            return True
-
-        # Verificar cada producto requerido
-        articulos_carrito = {str(detalle.articulo.articulo_id): detalle for detalle in carrito_detalle}
-        
-        for producto_req in productos_requeridos:
-            articulo_id = str(producto_req.articulo.articulo_id)
-            if articulo_id not in articulos_carrito:
-                print(f"   ❌ Falta producto requerido: {producto_req.articulo.descripcion}")
-                return False
-
-        print(f"   ✅ Todos los productos requeridos están en el carrito")
-        return True
-
-    def _evaluar_condicion_cantidad(self, promocion, carrito_detalle):
-        """
-        Evalúa promociones basadas en cantidad de productos
-        """
-        print(f"   🔢 Evaluando condición por cantidad...")
-        
-        productos_promocion = PromocionProducto.objects.filter(promocion=promocion)
-        
-        for producto_promo in productos_promocion:
-            # Buscar el producto en el carrito
-            detalle_producto = None
-            for detalle in carrito_detalle:
-                if detalle.articulo.articulo_id == producto_promo.articulo.articulo_id:
-                    detalle_producto = detalle
-                    break
-            
-            if not detalle_producto:
-                print(f"   ❌ Producto {producto_promo.articulo.descripcion} no está en carrito")
-                continue
-
-            cantidad_carrito = detalle_producto.cantidad
-            print(f"   📦 Producto: {producto_promo.articulo.descripcion}")
-            print(f"   📊 Cantidad en carrito: {cantidad_carrito}")
-            print(f"   📏 Rango: {producto_promo.cantidad_min}-{producto_promo.cantidad_max or '∞'}")
-            
-            # Verificar si cumple con las condiciones de cantidad
-            if self._cumple_condicion_cantidad(cantidad_carrito, producto_promo):
-                print(f"   ✅ Cumple condición de cantidad")
-                self._aplicar_beneficios_por_cantidad(promocion, producto_promo, cantidad_carrito)
-            else:
-                print(f"   ❌ No cumple condición de cantidad")
-
-    def _cumple_condicion_cantidad(self, cantidad_carrito, producto_promo):
-        """
-        Verifica si la cantidad del carrito cumple con las condiciones del producto promocional
-        """
-        if producto_promo.cantidad_min and cantidad_carrito < producto_promo.cantidad_min:
-            return False
-        
-        if producto_promo.cantidad_max and cantidad_carrito > producto_promo.cantidad_max:
-            return False
-        
-        return True
-
-    def _aplicar_beneficios_por_cantidad(self, promocion, producto_promo, cantidad_carrito):
-        """
-        Aplica beneficios específicos por cantidad
-        """
-        if promocion not in self.promociones_aplicadas:
-            self.promociones_aplicadas.append(promocion)
-
-        # Calcular cuántas veces aplica la promoción
-        if promocion.escalable:
-            # Promoción escalable: se aplica múltiples veces
-            veces_aplicable = cantidad_carrito // (producto_promo.cantidad_min or 1)
-            print(f"   🔄 Promoción escalable: {cantidad_carrito} ÷ {producto_promo.cantidad_min} = {veces_aplicable} veces")
-        else:
-            # Promoción no escalable: se aplica solo una vez si cumple la condición
-            veces_aplicable = 1 if cantidad_carrito >= (producto_promo.cantidad_min or 1) else 0
-            print(f"   🎯 Promoción única: aplica {veces_aplicable} vez")
-
-        # Si el tipo de selección es porcentaje, aplicar descuento
-        if producto_promo.tipo_seleccion == 'porcentaje' and producto_promo.valor:
-            self.descuentos.append({
-                'promocion': promocion,
-                'tipo': 'porcentaje_producto',
-                'porcentaje': float(producto_promo.valor),
-                'articulo': producto_promo.articulo,
-                'monto_descuento': 0,  # Se calculará al aplicar
-                'escalable': promocion.escalable,
-                'veces_aplicable': veces_aplicable
-            })
-            print(f"   💰 Descuento agregado: {producto_promo.valor}%")
-
-        # Si el tipo de selección es producto, aplicar bonificación
-        elif producto_promo.tipo_seleccion == 'producto' and producto_promo.valor:
-            cantidad_bonificada = int(producto_promo.valor) * veces_aplicable
-            
-            if cantidad_bonificada > 0:
-                self.bonificaciones.append({
-                    'promocion': promocion,
-                    'articulo': producto_promo.articulo,
-                    'cantidad': cantidad_bonificada,
-                    'escalable': promocion.escalable,
-                    'veces_aplicable': veces_aplicable
-                })
-                print(f"   🎁 Bonificación agregada: {cantidad_bonificada} unidades ({veces_aplicable} veces)")
-
-        # Aplicar bonificaciones adicionales de la promoción
-        self._aplicar_bonificaciones_promocion(promocion, veces_aplicable)
-
-    def _evaluar_condicion_monto(self, promocion, carrito_detalle):
-        """
-        VERSIÓN MEJORADA - Evalúa promociones basadas en monto de compra con soporte completo para Caso 9
-        """
-        print(f"   💰 Evaluando condición por monto...")
-        
-        # Calcular monto total del carrito (considerando filtros de línea/marca si aplica)
-        monto_total = self._calcular_monto_aplicable(promocion, carrito_detalle)
-        
-        if monto_total <= 0:
-            print(f"   ❌ Monto aplicable es 0")
-            return
-
-        print(f"   💰 Monto aplicable del carrito: S/{monto_total}")
-
-        # Verificar si es promoción combinada por monto (Caso 9)
-        if promocion.es_promocion_combinada_por_monto or self._tiene_bonificaciones_por_intervalo(promocion):
-            print(f"   🎯 Detectada promoción combinada por monto (Caso 9)")
-            self._evaluar_promocion_combinada_monto(promocion, monto_total)
-        else:
-            print(f"   📋 Promoción simple por monto")
-            self._evaluar_promocion_simple_monto(promocion, monto_total)
-
-    def _tiene_bonificaciones_por_intervalo(self, promocion):
-        """
-        Verifica si la promoción tiene bonificaciones específicas por intervalo de monto
-        """
-        return BonificacionPorIntervalo.objects.filter(
-            bonificacion__promocion=promocion
-        ).exists()
-
-    def _evaluar_promocion_combinada_monto(self, promocion, monto_total):
-        """
-        NUEVO - Evalúa promociones combinadas por monto (Caso 9)
-        """
-        print(f"   🔄 Evaluando promoción combinada por monto (Caso 9)")
-        
-        if promocion not in self.promociones_aplicadas:
-            self.promociones_aplicadas.append(promocion)
-
-        # Evaluar descuentos por rangos de monto
-        descuentos_aplicados = self._aplicar_descuentos_por_monto(promocion, monto_total)
-        
-        # Evaluar bonificaciones específicas por intervalo
-        bonificaciones_aplicadas = self._aplicar_bonificaciones_por_intervalo(promocion, monto_total)
-        
-        print(f"   ✅ Promoción combinada aplicada:")
-        print(f"      - Descuentos: {len(descuentos_aplicados)}")
-        print(f"      - Bonificaciones por intervalo: {len(bonificaciones_aplicadas)}")
-
-    def _evaluar_promocion_simple_monto(self, promocion, monto_total):
-        """
-        Evalúa promociones simples por monto (Casos 2, 5, 6, 10, 11)
-        """
-        # Verificar descuentos por rangos de monto
-        descuentos_promocion = Descuento.objects.filter(promocion=promocion).order_by('valor_minimo')
-        
-        for descuento in descuentos_promocion:
-            if self._cumple_condicion_monto(monto_total, descuento):
-                if promocion not in self.promociones_aplicadas:
-                    self.promociones_aplicadas.append(promocion)
-                
-                # Calcular monto de descuento
-                monto_descuento = monto_total * (descuento.porcentaje / 100) if descuento.porcentaje else 0
-                
-                self.descuentos.append({
-                    'promocion': promocion,
-                    'tipo': 'monto_total',
-                    'porcentaje': float(descuento.porcentaje) if descuento.porcentaje else 0,
-                    'monto_descuento': float(monto_descuento),
-                    'monto_base': float(monto_total),
-                    'escalable': promocion.escalable,
-                    'veces_aplicable': self._calcular_veces_aplicables_monto(promocion, monto_total)
-                })
-                
-                print(f"   💰 Descuento simple aplicado: {descuento.porcentaje}% sobre S/{monto_total}")
-
-                # Aplicar bonificaciones generales si las hay
-                self._aplicar_bonificaciones_promocion(promocion)
-                break  # Solo aplicar el primer rango que cumpla
-
-    def _aplicar_descuentos_por_monto(self, promocion, monto_total):
-        """
-        Aplica descuentos por monto para promociones combinadas
-        """
-        descuentos_aplicados = []
-        descuentos_promocion = Descuento.objects.filter(promocion=promocion).order_by('valor_minimo')
-        
-        for descuento in descuentos_promocion:
-            if self._cumple_condicion_monto(monto_total, descuento):
-                # Calcular monto de descuento
-                monto_descuento = monto_total * (descuento.porcentaje / 100) if descuento.porcentaje else 0
-                
-                descuento_aplicado = {
-                    'promocion': promocion,
-                    'tipo': 'monto_total_combinado',
-                    'porcentaje': float(descuento.porcentaje) if descuento.porcentaje else 0,
-                    'monto_descuento': float(monto_descuento),
-                    'monto_base': float(monto_total),
-                    'intervalo_min': float(descuento.valor_minimo),
-                    'intervalo_max': float(descuento.valor_maximo) if descuento.valor_maximo else None,
-                    'escalable': promocion.escalable,
-                    'veces_aplicable': 1
-                }
-                
-                self.descuentos.append(descuento_aplicado)
-                descuentos_aplicados.append(descuento_aplicado)
-                
-                print(f"      💰 Descuento aplicado: {descuento.porcentaje}% sobre S/{monto_total} = S/{monto_descuento}")
-                break  # Solo aplicar el primer rango que cumpla
-        
-        return descuentos_aplicados
-
-    def _aplicar_bonificaciones_por_intervalo(self, promocion, monto_total):
-        """
-        NUEVO - Aplica bonificaciones específicas por intervalo de monto (Caso 9)
-        """
-        bonificaciones_aplicadas = []
-        
-        # Obtener todas las bonificaciones con intervalos para esta promoción
-        bonificaciones_intervalo = BonificacionPorIntervalo.objects.filter(
-            bonificacion__promocion=promocion
-        ).select_related('bonificacion', 'bonificacion__articulo').order_by('valor_minimo')
-        
-        print(f"      📋 Bonificaciones por intervalo encontradas: {bonificaciones_intervalo.count()}")
-        
-        for bonif_intervalo in bonificaciones_intervalo:
-            print(f"      🔍 Verificando intervalo S/{bonif_intervalo.valor_minimo}-{bonif_intervalo.valor_maximo or '∞'}")
-            
-            # Verificar si el monto está en este intervalo
-            if self._monto_en_intervalo(monto_total, bonif_intervalo.valor_minimo, bonif_intervalo.valor_maximo):
-                print(f"      ✅ Monto S/{monto_total} está en intervalo")
-                
-                # Calcular cantidad bonificada
-                cantidad_bonificada = bonif_intervalo.bonificacion.cantidad
-                
-                # Si la promoción es escalable, calcular veces aplicables
-                if promocion.escalable:
-                    veces_aplicable = self._calcular_veces_aplicables_monto(promocion, monto_total)
-                    cantidad_bonificada *= veces_aplicable
-                else:
-                    veces_aplicable = 1
-                
-                bonificacion_aplicada = {
-                    'promocion': promocion,
-                    'articulo': bonif_intervalo.bonificacion.articulo,
-                    'cantidad': cantidad_bonificada,
-                    'intervalo_min': float(bonif_intervalo.valor_minimo),
-                    'intervalo_max': float(bonif_intervalo.valor_maximo) if bonif_intervalo.valor_maximo else None,
-                    'escalable': promocion.escalable,
-                    'veces_aplicable': veces_aplicable,
-                    'tipo_bonificacion': 'por_intervalo_monto'
-                }
-                
-                self.bonificaciones.append(bonificacion_aplicada)
-                bonificaciones_aplicadas.append(bonificacion_aplicada)
-                
-                print(f"      🎁 Bonificación por intervalo agregada: {cantidad_bonificada} unidades de {bonif_intervalo.bonificacion.articulo.descripcion}")
-                break  # Solo aplicar el primer intervalo que cumpla
-            else:
-                print(f"      ❌ Monto no está en este intervalo")
-        
-        return bonificaciones_aplicadas
-
-    def _monto_en_intervalo(self, monto, valor_minimo, valor_maximo):
-        """
-        Verifica si un monto está dentro de un intervalo específico
-        """
-        if monto < valor_minimo:
-            return False
-        
-        if valor_maximo and monto > valor_maximo:
-            return False
-        
-        return True
-
-    def _calcular_veces_aplicables_monto(self, promocion, monto_total):
-        """
-        Calcula cuántas veces es aplicable una promoción escalable por monto
-        """
-        if not promocion.escalable or not promocion.monto_minimo:
-            return 1
-        
-        return int(monto_total // promocion.monto_minimo)
-
-    def _calcular_monto_aplicable(self, promocion, carrito_detalle):
-        """
-        Calcula el monto del carrito que aplica para la promoción
-        considerando filtros de línea y marca
-        """
-        monto_total = Decimal('0')
-        
-        for detalle in carrito_detalle:
-            articulo = detalle.articulo
-            
-            # Si la promoción es solo para línea y marca específica
-            if promocion.grupo_proveedor_id or promocion.linea_articulo_id:
-                if promocion.grupo_proveedor_id and str(articulo.grupo_proveedor.grupo_proveedor_id) != str(promocion.grupo_proveedor_id):
-                    continue
-                if promocion.linea_articulo_id and str(articulo.linea_articulo.linea_articulo_id) != str(promocion.linea_articulo_id):
-                    continue
-            
-            monto_total += articulo.precio * detalle.cantidad
-        
-        return monto_total
-
-    def _verificar_promocion_linea_marca(self, promocion, carrito_detalle):
-        """
-        Verifica si el carrito contiene productos de la línea/marca especificada
-        """
-        if not promocion.grupo_proveedor_id and not promocion.linea_articulo_id:
-            return True  # No hay filtro específico
-        
-        for detalle in carrito_detalle:
-            articulo = detalle.articulo
-            
-            # Verificar marca si está especificada
-            if promocion.grupo_proveedor_id:
-                if str(articulo.grupo_proveedor.grupo_proveedor_id) != str(promocion.grupo_proveedor_id):
-                    continue
-            
-            # Verificar línea si está especificada
-            if promocion.linea_articulo_id:
-                if str(articulo.linea_articulo.linea_articulo_id) != str(promocion.linea_articulo_id):
-                    continue
-            
-            return True  # Encontró al menos un producto que cumple
-        
-        return False
-
-    def _cumple_condicion_monto(self, monto_total, descuento):
-        """
-        Verifica si el monto total cumple con las condiciones del descuento
-        """
-        if descuento.valor_minimo and monto_total < descuento.valor_minimo:
-            return False
-        
-        if descuento.valor_maximo and monto_total > descuento.valor_maximo:
-            return False
-        
-        return True
-
-    def _aplicar_beneficios_promocion(self, promocion, carrito_detalle=None):
-        """
-        Aplica los beneficios generales de una promoción
-        """
-        if promocion not in self.promociones_aplicadas:
-            self.promociones_aplicadas.append(promocion)
-
-        # Para promociones escalables por monto, calcular veces aplicables
-        veces_aplicable = 1
-        if promocion.escalable and promocion.tipo_condicion == 'monto' and carrito_detalle:
-            monto_total = self._calcular_monto_aplicable(promocion, carrito_detalle)
-            monto_minimo = promocion.monto_minimo or Decimal('0')
-            if monto_minimo > 0:
-                veces_aplicable = int(monto_total // monto_minimo)
-
-        # Aplicar bonificaciones
-        self._aplicar_bonificaciones_promocion(promocion, veces_aplicable)
-        
-        # Aplicar descuentos generales
-        descuentos_generales = Descuento.objects.filter(
-            promocion=promocion,
-            valor_minimo__isnull=True,
-            valor_maximo__isnull=True
-        )
-        
-        for descuento in descuentos_generales:
-            if descuento.porcentaje:
-                self.descuentos.append({
-                    'promocion': promocion,
-                    'tipo': 'general',
-                    'porcentaje': float(descuento.porcentaje),
-                    'monto_descuento': 0,  # Se calculará al aplicar
-                    'escalable': promocion.escalable,
-                    'veces_aplicable': veces_aplicable
-                })
-
-    def _aplicar_bonificaciones_promocion(self, promocion, veces_aplicable=1):
-        """
-        Aplica las bonificaciones definidas para una promoción
-        """
-        bonificaciones_promocion = Bonificacion.objects.filter(promocion=promocion)
-        
-        for bonificacion in bonificaciones_promocion:
-            # Si la promoción es escalable, multiplicar por las veces aplicables
-            cantidad_final = bonificacion.cantidad * veces_aplicable
-            
-            self.bonificaciones.append({
-                'promocion': promocion,
-                'articulo': bonificacion.articulo,
-                'cantidad': cantidad_final,
-                'escalable': promocion.escalable,
-                'veces_aplicable': veces_aplicable
-            })
-            print(f"   🎁 Bonificación adicional: {cantidad_final} unidades de {bonificacion.articulo.descripcion}")
-
-    def _construir_respuesta(self, ):
-        """
-        Construye la respuesta final con todos los beneficios aplicables
-        """
-        # Calcular totales
-        total_descuento = sum(desc.get('monto_descuento', 0) for desc in self.descuentos)
-        total_bonificaciones = len(self.bonificaciones)
-        
-        respuesta = {
-            'promociones_aplicadas': self.promociones_aplicadas,
-            'bonificaciones': self.bonificaciones,
-            'descuentos': self.descuentos,
-            'errores': self.errores,
-            'total_descuento': total_descuento,
-            'total_bonificaciones': total_bonificaciones
-        }
-        
-        # Debug de respuesta final
-        print(f"\n📊 RESUMEN FINAL:")
-        print(f"   🎉 Promociones aplicadas: {len(self.promociones_aplicadas)}")
-        for promo in self.promociones_aplicadas:
-            escalable_info = " (Escalable)" if promo.escalable else ""
-            tipo_info = " - Caso 9" if promo.es_promocion_combinada_por_monto else ""
-            print(f"      - {promo.nombre}{escalable_info}{tipo_info}")
-        
-        print(f"   🎁 Total bonificaciones: {total_bonificaciones}")
-        for bonif in self.bonificaciones:
-            tipo_info = f" [{bonif.get('tipo_bonificacion', 'general')}]" if bonif.get('tipo_bonificacion') else ""
-            print(f"      - {bonif['cantidad']} x {bonif['articulo'].descripcion}{tipo_info}")
-        
-        print(f"   💰 Total descuentos: {len(self.descuentos)} (S/{total_descuento})")
-        for desc in self.descuentos:
-            print(f"      - {desc.get('porcentaje', 0)}% = S/{desc.get('monto_descuento', 0)}")
-        
-        if self.errores:
-            print(f"   ❌ Errores: {len(self.errores)}")
-            for error in self.errores:
-                print(f"      - {error}")
-        
-        return respuesta
-
-
-def evaluar_promociones(carrito_detalle, cliente=None, empresa=None, sucursal=None):
+def procesar_nueva_promocion(request):
     """
-    Función principal para evaluar promociones desde las vistas
+    Procesa el nuevo formulario paso a paso de promociones (ACTUALIZADO PARA NUEVA ESTRUCTURA)
     """
-    print(f"\n🔥 INICIANDO EVALUACIÓN DE PROMOCIONES")
-    print(f"   🛒 Productos en carrito: {len(carrito_detalle) if carrito_detalle else 0}")
-    print(f"   👤 Cliente: {cliente.usuario.nombre if cliente and cliente.usuario else 'Anónimo'}")
-    print(f"   🏢 Empresa: {empresa.nombre if empresa else 'No especificada'}")
-    print(f"   🏪 Sucursal: {sucursal.nombre if sucursal else 'No especificada'}")
-    
-    motor = MotorPromociones()
-    resultado = motor.evaluar_promociones(carrito_detalle, cliente, empresa, sucursal)
-    
-    print(f"🏁 EVALUACIÓN COMPLETADA\n")
-    return resultado
+    try:
+        with transaction.atomic():
+            # PASO 1: Crear la promoción base
+            promocion_data = extraer_datos_promocion_base(request.POST)
+            promocion = crear_promocion_base(promocion_data)
+            
+            # PASO 2: Configurar filtros de productos
+            configurar_filtros_productos(request.POST, promocion)
+            
+            # PASO 3: Configurar rangos (condiciones)
+            configurar_rangos_promocion(request.POST, promocion)
+            
+            # PASO 4: Configurar beneficios
+            configurar_beneficios_promocion(request.POST, promocion)
+            
+            messages.success(request, f'Promoción "{promocion.descripcion}" creada exitosamente')
+            return redirect('home')
+            
+    except Exception as e:
+        print(f"❌ ERROR al procesar promoción: {str(e)}")
+        messages.error(request, f"Error al registrar la promoción: {str(e)}")
+        form = PromocionForm()
+        return render(request, 'core/promociones/registrar_promocion.html', {'form': form})
 
+def extraer_datos_promocion_base(post_data):
+    """
+    Extrae los datos básicos de la promoción del formulario (actualizado para nueva estructura)
+    """
+    return {
+        'descripcion': post_data.get('descripcion', '').strip(),
+        'empresa_id': post_data.get('empresa'),
+        'sucursal_id': post_data.get('sucursal') if post_data.get('sucursal') else None,
+        'canal_cliente_id': post_data.get('canal_cliente'),
+        'fecha_inicio': post_data.get('fecha_inicio'),
+        'fecha_fin': post_data.get('fecha_fin'),
+        'escalable': post_data.get('promocion_escalable') == '1',
+        'estado': post_data.get('estado', 1)
+    }
 
-# FUNCIÓN AUXILIAR PARA DEBUGGING DEL CASO 9
-def debug_evaluacion_caso9(promocion, monto_total):
+def crear_promocion_base(data):
     """
-    Función de debugging específica para el Caso 9
+    Crea el registro base de la promoción (actualizado)
     """
-    print("\n=== DEBUG CASO 9 ===")
-    print(f"Promoción: {promocion.nombre}")
-    print(f"Monto total: S/{monto_total}")
-    print(f"Es promoción combinada: {promocion.es_promocion_combinada_por_monto}")
-    
-    # Mostrar descuentos configurados
-    descuentos = Descuento.objects.filter(promocion=promocion)
-    print(f"\nDescuentos configurados: {descuentos.count()}")
-    for desc in descuentos:
-        print(f"  - S/{desc.valor_minimo}-{desc.valor_maximo or '∞'}: {desc.porcentaje}%")
-    
-    # Mostrar bonificaciones por intervalo
-    bonificaciones_intervalo = BonificacionPorIntervalo.objects.filter(
-        bonificacion__promocion=promocion
+    promocion = Promocion.objects.create(
+        descripcion=data['descripcion'],
+        empresa_id=data['empresa_id'],
+        sucursal_id=data['sucursal_id'],
+        canal_cliente_id=data['canal_cliente_id'],
+        fecha_inicio=data['fecha_inicio'],
+        fecha_fin=data['fecha_fin'],
+        escalable=data['escalable'],
+        estado=data['estado']
     )
-    print(f"\nBonificaciones por intervalo: {bonificaciones_intervalo.count()}")
-    for bonif in bonificaciones_intervalo:
-        print(f"  - S/{bonif.valor_minimo}-{bonif.valor_maximo or '∞'}: {bonif.bonificacion.cantidad} unidades {bonif.bonificacion.articulo.descripcion}")
+    escalable_text = " (ESCALABLE)" if data['escalable'] else ""
+    print(f"✅ Promoción base creada: {promocion.descripcion}{escalable_text}")
+    return promocion
+
+def configurar_filtros_productos(post_data, promocion):
+    """
+    Configura los filtros de productos (actualizado para nueva estructura)
+    """
+    tipo_filtro = post_data.get('tipo_filtro', 'productos_especificos')
     
-    print("=== FIN DEBUG CASO 9 ===\n")
+    if tipo_filtro == 'linea_marca':
+        # Caso: Promoción para línea y marca específica
+        marca_id = post_data.get('grupo_proveedor')
+        linea_id = post_data.get('linea_articulo')
+        
+        if marca_id:
+            promocion.grupo_proveedor_id = marca_id
+            print(f"✅ Filtro por marca: {marca_id}")
+        
+        if linea_id:
+            promocion.linea_articulo_id = linea_id
+            print(f"✅ Filtro por línea: {linea_id}")
+        
+        promocion.save()
+        
+    else:
+        # Caso: Productos específicos
+        productos_condicion = post_data.getlist('productos_condicion')
+        productos_validos = [p for p in productos_condicion if p]
+        
+        for producto_id in productos_validos:
+            VerificacionProducto.objects.create(
+                articulo_id=producto_id,
+                promocion=promocion
+            )
+            print(f"✅ Producto condición agregado: {producto_id}")
+
+def configurar_rangos_promocion(post_data, promocion):
+    """
+    Configura los rangos de la promoción (NUEVA FUNCIÓN PARA NUEVA ESTRUCTURA)
+    """
+    tipo_condicion = post_data.get('tipo_condicion')
+    
+    if tipo_condicion == 'cantidad':
+        configurar_rangos_cantidad(post_data, promocion)
+    elif tipo_condicion == 'monto':
+        configurar_rangos_monto(post_data, promocion)
+
+def configurar_rangos_cantidad(post_data, promocion):
+    """
+    Configura rangos por cantidad
+    """
+    cantidades_min = post_data.getlist('cantidad_min')
+    cantidades_max = post_data.getlist('cantidad_max')
+    valores_descuento = post_data.getlist('porcentaje_descuento')
+    
+    for i, cantidad_min in enumerate(cantidades_min):
+        if not cantidad_min:
+            continue
+            
+        cantidad_max = cantidades_max[i] if i < len(cantidades_max) and cantidades_max[i] else None
+        descuento = valores_descuento[i] if i < len(valores_descuento) and valores_descuento[i] else None
+        
+        # Crear rango
+        rango = Rango.objects.create(
+            promocion=promocion,
+            tipo_rango='cantidad',
+            minimo=int(cantidad_min),
+            maximo=int(cantidad_max) if cantidad_max else None,
+            descuento=float(descuento) if descuento else None
+        )
+        
+        print(f"✅ Rango cantidad creado: {cantidad_min}-{cantidad_max or '∞'}")
+
+def configurar_rangos_monto(post_data, promocion):
+    """
+    Configura rangos por monto
+    """
+    montos_min = post_data.getlist('monto_minimo')
+    montos_max = post_data.getlist('monto_maximo')
+    porcentajes = post_data.getlist('porcentaje_descuento')
+    
+    for i, monto_min in enumerate(montos_min):
+        if not monto_min:
+            continue
+            
+        monto_max = montos_max[i] if i < len(montos_max) and montos_max[i] else None
+        porcentaje = porcentajes[i] if i < len(porcentajes) and porcentajes[i] else None
+        
+        # Crear rango
+        rango = Rango.objects.create(
+            promocion=promocion,
+            tipo_rango='monto',
+            minimo=int(float(monto_min)),
+            maximo=int(float(monto_max)) if monto_max else None,
+            descuento=float(porcentaje) if porcentaje else None
+        )
+        
+        print(f"✅ Rango monto creado: S/{monto_min}-{monto_max or '∞'} = {porcentaje}%")
+
+def configurar_beneficios_promocion(post_data, promocion):
+    """
+    Configura los beneficios de la promoción (ACTUALIZADO PARA NUEVA ESTRUCTURA)
+    """
+    tipo_beneficio = post_data.get('tipo_beneficio_nombre', '').lower()
+    
+    # Crear registro de beneficio
+    beneficio = Beneficio.objects.create(
+        promocion=promocion,
+        tipo_beneficio=determinar_tipo_beneficio(tipo_beneficio),
+        descuento=post_data.get('porcentaje_descuento') or post_data.get('porcentaje_descuento_ambos')
+    )
+    
+    # Configurar productos beneficiados
+    if 'bonificación' in tipo_beneficio or 'ambos' in tipo_beneficio:
+        configurar_productos_beneficiados(post_data, beneficio, tipo_beneficio)
+
+def determinar_tipo_beneficio(tipo_texto):
+    """
+    Determina el tipo de beneficio basado en el texto
+    """
+    if 'ambos' in tipo_texto:
+        return 'ambos'
+    elif 'bonificación' in tipo_texto:
+        return 'bonificacion'
+    else:
+        return 'descuento'
+
+def configurar_productos_beneficiados(post_data, beneficio, tipo_beneficio):
+    """
+    Configura productos que se darán como beneficio
+    """
+    if 'ambos' in tipo_beneficio:
+        productos = post_data.getlist('productos_bonificados_ambos[]')
+        cantidades = post_data.getlist('cantidad_bonificada_ambos[]')
+    else:
+        productos = post_data.getlist('productos_bonificados[]')
+        cantidades = post_data.getlist('cantidad_bonificada[]')
+    
+    for producto_id, cantidad in zip(productos, cantidades):
+        if producto_id and cantidad:
+            ProductosBeneficios.objects.create(
+                beneficio=beneficio,
+                articulo_id=producto_id,
+                cantidad=int(cantidad)
+            )
+            print(f"✅ Producto beneficiado: {cantidad} unidades de {producto_id}")
+
+# Función auxiliar para debugging
+def imprimir_datos_formulario(post_data):
+    """
+    Función para debugging - imprime todos los datos del formulario
+    """
+    print("\n=== DATOS DEL FORMULARIO ===")
+    for key, value in post_data.items():
+        if isinstance(value, list):
+            print(f"{key}: {value}")
+        else:
+            print(f"{key}: {value}")
+    print("=== FIN DATOS FORMULARIO ===\n")

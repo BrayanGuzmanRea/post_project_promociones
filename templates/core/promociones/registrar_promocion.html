@@ -29,7 +29,7 @@
                                         <label for="id_nombre" class="form-label required">
                                             <i class="fas fa-tag"></i> Descripción de la Promoción *
                                         </label>
-                                        {{ form.nombre }}
+                                        {{ form.descripcion }}
                                         <div class="form-text">Ejemplo: "3x2 en Vinos Borgoña", "5% descuento por compras mayores a S/300"</div>
                                     </div>
 
@@ -122,19 +122,19 @@
                                     <div class="row">
                                         <div class="col-md-4 mb-3">
                                             <label for="id_grupo_proveedor" class="form-label required">
-                                                <i class="fas fa-industry"></i> Marca/Proveedor *
+                                                <i class="fas fa-industry"></i> Marca/Proveedor 
                                             </label>
                                             {{ form.grupo_proveedor }}
                                         </div>
                                         <div class="col-md-4 mb-3">
                                             <label for="id_linea_articulo" class="form-label required">
-                                                <i class="fas fa-list"></i> Línea de Artículo *
+                                                <i class="fas fa-list"></i> Línea de Artículo 
                                             </label>
                                             {{ form.linea_articulo }}
                                         </div>
                                         <div class="col-md-4 mb-3">
                                             <label for="monto_minimo_productos" class="form-label required">
-                                                <i class="fas fa-dollar-sign"></i> Monto Mínimo en Productos *
+                                                <i class="fas fa-dollar-sign"></i> Monto Mínimo en Productos 
                                             </label>
                                             <div class="input-group">
                                                 <span class="input-group-text">S/</span>
@@ -159,7 +159,7 @@
                                     <div id="productos-condicion-container">
                                         <div class="row mb-2 producto-condicion">
                                             <div class="col-md-10">
-                                                <select name="productos_condicion" class="form-select productos-condicion-select" required>
+                                                <select name="productos_condicion" class="form-select productos-condicion-select">
                                                     <option value="">Seleccione un producto *</option>
                                                 </select>
                                             </div>
@@ -219,15 +219,16 @@
                                                 <tr class="rango-cantidad-item" data-index="0">
                                                     <td>
                                                         <input type="number" name="cantidad_min[]" class="form-control cantidad-min-input" 
-                                                               min="1" placeholder="Ej: 4" data-required="true">
+                                                            min="1" placeholder="Ej: 4" data-rango-index="0">
                                                     </td>
                                                     <td>
-                                                        <input type="number" name="cantidad_max[]" class="form-control" min="1" placeholder="Opcional">
+                                                        <input type="number" name="cantidad_max[]" class="form-control" min="1" placeholder="Opcional"
+                                                            data-rango-index="0">
                                                         <small class="text-muted">Vacío = "en adelante"</small>
                                                     </td>
                                                     <td>
                                                         <input type="number" name="porcentaje_descuento_cantidad[]" class="form-control descuento-input" 
-                                                               min="0" max="100" step="0.01" placeholder="Ej: 5">
+                                                            min="0" max="100" step="0.01" placeholder="Ej: 5" data-rango-index="0">
                                                     </td>
                                                     <td>
                                                         <div class="productos-bonificados-container">
@@ -235,14 +236,16 @@
                                                             <div class="producto-bonificado-item mb-2">
                                                                 <div class="row">
                                                                     <div class="col-7">
-                                                                        <select name="producto_bonificado_cantidad[]" class="form-select producto-bonificado-select">
+                                                                        <!-- ✅ CORREGIDO: Incluir índice 0 -->
+                                                                        <select name="producto_bonificado_cantidad_0[]" class="form-select producto-bonificado-select">
                                                                             <option value="">Sin producto bonificado</option>
                                                                         </select>
                                                                     </div>
                                                                     <div class="col-3">
-                                                                        <input type="number" name="cantidad_bonificada_cantidad[]" 
-                                                                               class="form-control cantidad-bonificada-input" 
-                                                                               min="1" placeholder="Cant." disabled>
+                                                                        <!-- ✅ CORREGIDO: Incluir índice 0 -->
+                                                                        <input type="number" name="cantidad_bonificada_cantidad_0[]" 
+                                                                            class="form-control cantidad-bonificada-input" 
+                                                                            min="1" placeholder="Cant." disabled>
                                                                     </div>
                                                                     <div class="col-2">
                                                                         <button type="button" class="btn btn-danger btn-sm btn-quitar-producto-bonificado" 
@@ -298,15 +301,16 @@
                                                 <tr class="rango-monto-item" data-index="0">
                                                     <td>
                                                         <input type="number" name="monto_minimo[]" class="form-control monto-min-input" 
-                                                               min="0" step="0.01" placeholder="Ej: 300" data-required="true">
+                                                            min="0" step="0.01" placeholder="Ej: 300" data-rango-index="0">
                                                     </td>
                                                     <td>
-                                                        <input type="number" name="monto_maximo[]" class="form-control" min="0" step="0.01" placeholder="Opcional">
+                                                        <input type="number" name="monto_maximo[]" class="form-control" min="0" step="0.01" placeholder="Opcional"
+                                                            data-rango-index="0">
                                                         <small class="text-muted">Vacío = "en adelante"</small>
                                                     </td>
                                                     <td>
                                                         <input type="number" name="porcentaje_descuento_monto[]" class="form-control descuento-input" 
-                                                               min="0" max="100" step="0.01" placeholder="Ej: 5">
+                                                            min="0" max="100" step="0.01" placeholder="Ej: 5" data-rango-index="0">
                                                     </td>
                                                     <td>
                                                         <div class="productos-bonificados-container">
@@ -314,14 +318,16 @@
                                                             <div class="producto-bonificado-item mb-2">
                                                                 <div class="row">
                                                                     <div class="col-7">
-                                                                        <select name="producto_bonificado_monto[]" class="form-select producto-bonificado-select">
+                                                                        <!-- ✅ CORREGIDO: Incluir índice 0 -->
+                                                                        <select name="producto_bonificado_monto_0[]" class="form-select producto-bonificado-select">
                                                                             <option value="">Sin producto bonificado</option>
                                                                         </select>
                                                                     </div>
                                                                     <div class="col-3">
-                                                                        <input type="number" name="cantidad_bonificada_monto[]" 
-                                                                               class="form-control cantidad-bonificada-input" 
-                                                                               min="1" placeholder="Cant." disabled>
+                                                                        <!-- ✅ CORREGIDO: Incluir índice 0 -->
+                                                                        <input type="number" name="cantidad_bonificada_monto_0[]" 
+                                                                            class="form-control cantidad-bonificada-input" 
+                                                                            min="1" placeholder="Cant." disabled>
                                                                     </div>
                                                                     <div class="col-2">
                                                                         <button type="button" class="btn btn-danger btn-sm btn-quitar-producto-bonificado" 
@@ -395,12 +401,12 @@
                                             <tbody id="tabla-bonificaciones">
                                                 <tr class="bonificacion-item">
                                                     <td>
-                                                        <select name="productos_bonificados[]" class="form-select select-bonificacion" required>
+                                                        <select name="productos_bonificados[]" class="form-select select-bonificacion">
                                                             <option value="">Seleccione un producto *</option>
                                                         </select>
                                                     </td>
                                                     <td>
-                                                        <input type="number" name="cantidad_bonificada[]" class="form-control" min="1" placeholder="Ej: 2" required>
+                                                        <input type="number" name="cantidad_bonificada[]" class="form-control" min="1" placeholder="Ej: 2">
                                                     </td>
                                                     <td>
                                                         <button type="button" class="btn btn-success btn-sm btn-agregar-bonificacion me-1" title="Agregar producto">
@@ -428,7 +434,7 @@
                                             <label for="descuento_general" class="form-label required">Porcentaje de Descuento (%) *:</label>
                                             <div class="input-group">
                                                 <input type="number" id="descuento_general" name="porcentaje_descuento" 
-                                                       class="form-control" min="0" max="100" step="0.01" placeholder="Ej: 10" required>
+                                                       class="form-control" min="0" max="100" step="0.01" placeholder="Ej: 10">
                                                 <span class="input-group-text">%</span>
                                             </div>
                                         </div>
@@ -460,12 +466,12 @@
                                                     <tbody id="tabla-bonificaciones-ambos">
                                                         <tr class="bonificacion-ambos-item">
                                                             <td>
-                                                                <select name="productos_bonificados_ambos[]" class="form-select select-bonificacion-ambos" required>
+                                                                <select name="productos_bonificados_ambos[]" class="form-select select-bonificacion-ambos" >
                                                                     <option value="">Seleccione producto *</option>
                                                                 </select>
                                                             </td>
                                                             <td>
-                                                                <input type="number" name="cantidad_bonificada_ambos[]" class="form-control" min="1" required>
+                                                                <input type="number" name="cantidad_bonificada_ambos[]" class="form-control" min="1">
                                                             </td>
                                                             <td>
                                                                 <button type="button" class="btn btn-success btn-sm btn-agregar-bonificacion-ambos me-1">
@@ -491,7 +497,7 @@
                                                     <label for="descuento_ambos" class="form-label required">Porcentaje (%) *:</label>
                                                     <div class="input-group">
                                                         <input type="number" id="descuento_ambos" name="porcentaje_descuento_ambos" 
-                                                               class="form-control" min="0" max="100" step="0.01" required>
+                                                               class="form-control" min="0" max="100" step="0.01">
                                                         <span class="input-group-text">%</span>
                                                     </div>
                                                 </div>

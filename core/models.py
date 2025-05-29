@@ -89,8 +89,8 @@ class Cliente(models.Model):
         db_table = 'clientes'
 
     def __str__(self):
-        # Muestra el nombre del usuario asociado o un texto si no tiene usuario
         return self.usuario.nombre if self.usuario else "Cliente sin usuario"
+
 
 class GrupoProveedor(models.Model):
     grupo_proveedor_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -131,6 +131,7 @@ class SublineaArticulo(models.Model):
     def __str__(self):
         return self.nombre
   
+
 class Articulo(models.Model):
     articulo_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     empresa = models.ForeignKey(Empresa, on_delete=models.RESTRICT, related_name='articulos')
@@ -177,167 +178,135 @@ class StockSucursal(models.Model):
         return f'Stock {self.stock_actual} de {self.articulo} en {self.sucursal}'
 
 
-class TipoBeneficio(models.Model):
-    tipo_beneficio_id = models.AutoField(primary_key=True)
-    nombre = models.CharField(max_length=50, unique=True)
-
-    class Meta:
-        db_table = 'tipos_beneficio'
-
-    def __str__(self):
-        return self.nombre
-
+# ===== NUEVA ESTRUCTURA DE PROMOCIONES =====
 
 class Promocion(models.Model):
-    TIPO_CONDICION_CHOICES = [
-        ('monto', 'Intervalos de Precios'),
-        ('cantidad', 'Intervalos de Cantidad'),
-    ]
-
+    """
+    Tabla actualizada de promociones con la nueva estructura simplificada
+    """
     promocion_id = models.AutoField(primary_key=True)
-    nombre = models.CharField(max_length=255)
+    descripcion = models.CharField(max_length=255)
     empresa = models.ForeignKey(Empresa, on_delete=models.RESTRICT, related_name='promociones')
-    sucursal = models.ForeignKey(Sucursal, on_delete=models.RESTRICT, null=True, blank=True, related_name='promociones')
-    canal_cliente = models.ForeignKey(CanalCliente, on_delete=models.RESTRICT, null=True, blank=True, related_name='promociones')
+    sucursal = models.ForeignKey(Sucursal, on_delete=models.RESTRICT, related_name='promociones')
+    canal_cliente = models.ForeignKey(CanalCliente, on_delete=models.RESTRICT, related_name='promociones')
     fecha_inicio = models.DateField()
     fecha_fin = models.DateField()
-    tipo_condicion = models.CharField(max_length=10, choices=TIPO_CONDICION_CHOICES, null=True, blank=True)
-    monto_minimo = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    cantidad_minima = models.IntegerField(null=True, blank=True)
-    tipo_beneficio = models.ForeignKey(TipoBeneficio, on_delete=models.RESTRICT, related_name='promociones', null=True, blank=True)
-    estado = models.IntegerField(choices=EstadoEntidades.choices, default=EstadoEntidades.ACTIVO)
-    
-    # CAMPOS AGREGADOS PARA MEJORAS
-    escalable = models.BooleanField(
-        default=False,
-        help_text="Si está marcado, la promoción se aplica múltiples veces según cantidad/monto (Casos 1 y 2)"
-    )
-    beneficio_configurado_en_condiciones = models.BooleanField(
-        default=False,
-        help_text="Indica si el beneficio ya se configuró en las condiciones (evita duplicación)"
-    )
-    es_promocion_combinada_por_monto = models.BooleanField(
-        default=False,
-        help_text="Indica si es una promoción del Caso 9 (bonificación + descuento por intervalos)"
-    )
-
-    linea_articulo_id = models.UUIDField(null=True, blank=True)
     grupo_proveedor_id = models.UUIDField(null=True, blank=True)
-    
+    linea_articulo_id = models.UUIDField(null=True, blank=True)
+    monto_minimo = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    escalable = models.BooleanField(default=False)
+    estado = models.IntegerField(choices=EstadoEntidades.choices, default=EstadoEntidades.ACTIVO)
+
     class Meta:
         db_table = 'promociones'
 
     def __str__(self):
         escalable_text = " (Escalable)" if self.escalable else ""
-        return f"{self.nombre}{escalable_text}"
-
-
-class PromocionProducto(models.Model):
-    promocion_producto_id = models.AutoField(primary_key=True)
-    promocion = models.ForeignKey(Promocion, on_delete=models.CASCADE, related_name='productos')
-    articulo = models.ForeignKey(Articulo, on_delete=models.RESTRICT, related_name='promocion_productos')
-
-    cantidad_min = models.PositiveIntegerField(null=True, blank=True)
-    cantidad_max = models.PositiveIntegerField(null=True, blank=True)
-    tipo_seleccion = models.CharField(max_length=20, null=True, blank=True)  # 'producto' o 'porcentaje'
-    valor = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-
-    class Meta:
-        db_table = 'promocion_productos'
-
-class PromocionLinea(models.Model):
-    promocion_linea_id = models.AutoField(primary_key=True)
-    promocion = models.ForeignKey(Promocion, on_delete=models.CASCADE, related_name='lineas')
-    linea_articulo = models.ForeignKey(LineaArticulo, on_delete=models.RESTRICT, related_name='promocion_lineas')
-
-    class Meta:
-        db_table = 'promocion_lineas'
-        unique_together = ('promocion', 'linea_articulo')
-
-
-class Bonificacion(models.Model):
-    bonificacion_id = models.AutoField(primary_key=True)
-    promocion = models.ForeignKey(Promocion, on_delete=models.CASCADE, related_name='bonificaciones')
-    articulo = models.ForeignKey(Articulo, on_delete=models.RESTRICT, related_name='bonificaciones')
-    cantidad = models.IntegerField()
-
-    class Meta:
-        db_table = 'bonificaciones'
-
-
-class Descuento(models.Model):
-    descuento_id = models.AutoField(primary_key=True)
-
-    promocion = models.ForeignKey('Promocion',on_delete=models.CASCADE,related_name='descuentos')
-    valor_minimo = models.DecimalField(max_digits=10,decimal_places=2,null=True)
-    valor_maximo = models.DecimalField(max_digits=10, decimal_places=2, null=True,blank=True)
-    porcentaje = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
-
-    class Meta:
-        db_table = 'descuentos'
-        verbose_name = "Descuento"
-        verbose_name_plural = "Descuentos"
-        ordering = ['valor_minimo']
-
-    def __str__(self):
-        if self.valor_maximo:
-            return f"{self.valor_minimo} - {self.valor_maximo} → {self.porcentaje or 0}%"
-        return f"> {self.valor_minimo} → {self.porcentaje or 0}%"
-
-
-# NUEVO MODELO PARA CASO 9
-class BonificacionPorIntervalo(models.Model):
-    """
-    Modelo para vincular bonificaciones específicas con intervalos de monto.
-    Usado en el Caso 9: promociones combinadas por monto donde cada intervalo
-    tiene su propia bonificación específica.
-    
-    Ejemplo:
-    - S/1500-3000: 5 unidades producto B + 2% descuento
-    - S/3000+: 8 unidades producto B + 3% descuento
-    """
-    bonificacion_intervalo_id = models.AutoField(primary_key=True)
-    bonificacion = models.ForeignKey(
-        Bonificacion, 
-        on_delete=models.CASCADE, 
-        related_name='intervalos_monto'
-    )
-    valor_minimo = models.DecimalField(
-        max_digits=10, 
-        decimal_places=2,
-        help_text="Monto mínimo para esta bonificación específica"
-    )
-    valor_maximo = models.DecimalField(
-        max_digits=10, 
-        decimal_places=2, 
-        null=True, 
-        blank=True,
-        help_text="Monto máximo para esta bonificación específica. NULL = sin límite"
-    )
-    
-    class Meta:
-        db_table = 'bonificaciones_por_intervalo'
-        verbose_name = "Bonificación por Intervalo de Monto"
-        verbose_name_plural = "Bonificaciones por Intervalos de Monto"
-        ordering = ['valor_minimo']
-
-    def __str__(self):
-        if self.valor_maximo:
-            return f"S/{self.valor_minimo} - S/{self.valor_maximo}: {self.bonificacion.cantidad} unidades {self.bonificacion.articulo.descripcion}"
-        return f"S/{self.valor_minimo}+: {self.bonificacion.cantidad} unidades {self.bonificacion.articulo.descripcion}"
+        return f"{self.descripcion}{escalable_text}"
 
 
 class VerificacionProducto(models.Model):
+    """
+    Esta tabla se mantiene sin cambios - productos que deben estar en el carrito
+    para que aplique la promoción
+    """
     verificacion_id = models.AutoField(primary_key=True)
     articulo = models.ForeignKey('Articulo', on_delete=models.CASCADE, related_name='verificaciones')
     promocion = models.ForeignKey('Promocion', on_delete=models.CASCADE, related_name='verificaciones')
 
     def __str__(self):
-        return f"Verificación {self.verificacion_id} - Artículo {self.articulo.descripcion} - Promoción {self.promocion.nombre}"
+        return f"Verificación {self.verificacion_id} - Artículo {self.articulo.descripcion} - Promoción {self.promocion.descripcion}"
 
     class Meta:
         db_table = 'verificacion_productos'
 
+
+class Rango(models.Model):
+    """
+    Nueva tabla de rangos - reemplaza a promocion_productos y descuentos
+    Define los intervalos de cantidad o monto que activan la promoción
+    """
+    TIPO_CONDICION_CHOICES = [
+        ('monto', 'Intervalos de Precios'),
+        ('cantidad', 'Intervalos de Cantidad'),
+    ]
+
+    rango_id = models.AutoField(primary_key=True)
+    tipo_rango = models.CharField(max_length=10, choices=TIPO_CONDICION_CHOICES)
+    minimo = models.IntegerField()
+    maximo = models.IntegerField(null=True, blank=True)
+    descuento = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    promocion = models.ForeignKey(Promocion, on_delete=models.CASCADE, related_name='rangos')
+
+    class Meta:
+        db_table = 'rangos'
+        ordering = ['minimo']
+
+    def __str__(self):
+        tipo_texto = "cantidad" if self.tipo_rango == "cantidad" else "monto"
+        if self.maximo:
+            return f"Rango {tipo_texto}: {self.minimo} - {self.maximo}"
+        return f"Rango {tipo_texto}: {self.minimo}+"
+
+
+class ProductoBonificadoRango(models.Model):
+    """
+    Nueva tabla que vincula productos bonificados con rangos específicos
+    Permite que cada rango tenga sus propios productos bonificados
+    """
+    pro_boni_id = models.AutoField(primary_key=True)
+    articulo = models.ForeignKey(Articulo, on_delete=models.CASCADE, related_name='bonificaciones_rango')
+    cantidad = models.IntegerField()
+    rango = models.ForeignKey(Rango, on_delete=models.CASCADE, related_name='productos_bonificados')
+
+    class Meta:
+        db_table = 'producto_bonificado_rangos'
+
+    def __str__(self):
+        return f"{self.cantidad} unidades de {self.articulo.descripcion} (Rango: {self.rango.rango_id})"
+
+
+class Beneficio(models.Model):
+    """
+    Nueva tabla de beneficios - define los tipos de beneficios de la promoción
+    """
+    TIPO_BENEFICIO_CHOICES = [
+        ('bonificacion', 'Solo Bonificación'),
+        ('descuento', 'Solo Descuento'), 
+        ('ambos', 'Bonificación + Descuento'),
+    ]
+
+    beneficio_id = models.AutoField(primary_key=True)
+    tipo_beneficio = models.CharField(max_length=20, choices=TIPO_BENEFICIO_CHOICES)
+    descuento = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    promocion = models.ForeignKey(Promocion, on_delete=models.CASCADE, related_name='beneficios')
+
+    class Meta:
+        db_table = 'beneficio'
+
+    def __str__(self):
+        desc_text = f" ({self.descuento}%)" if self.descuento else ""
+        return f"{self.get_tipo_beneficio_display()}{desc_text}"
+
+
+class ProductosBeneficios(models.Model):
+    """
+    Nueva tabla que reemplaza a bonificaciones
+    Define qué productos se dan como beneficio y en qué cantidades
+    """
+    pro_bene_id = models.AutoField(primary_key=True)
+    articulo = models.ForeignKey(Articulo, on_delete=models.CASCADE, related_name='beneficios')
+    cantidad = models.IntegerField()
+    beneficio = models.ForeignKey(Beneficio, on_delete=models.CASCADE, related_name='productos')
+
+    class Meta:
+        db_table = 'productos_beneficios'
+
+    def __str__(self):
+        return f"{self.cantidad} unidades de {self.articulo.descripcion}"
+
+
+# ===== MODELOS DE GESTIÓN DE PEDIDOS (SIN CAMBIOS) =====
 
 class BonificacionAplicada(models.Model):
     bonificacion_aplicada_id = models.AutoField(primary_key=True)

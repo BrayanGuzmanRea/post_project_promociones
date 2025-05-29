@@ -1,6 +1,6 @@
-// static/js/jvPromos.js - VERSIÓN FINAL COMPLETA CON TODAS LAS CORRECCIONES
+// static/js/jvPromos.js - VERSIÓN COMPLETA CON RANGOS ILIMITADOS Y CONDICIONES DE GUARDADO
 document.addEventListener('DOMContentLoaded', function () {
-    console.log('🚀 jvPromos.js cargado correctamente');
+    console.log('🚀 jvPromos.js cargado correctamente - VERSIÓN RANGOS ILIMITADOS');
     
     // Variables globales
     let articulosDisponibles = [];
@@ -58,7 +58,6 @@ document.addEventListener('DOMContentLoaded', function () {
         if (tipoBeneficioSelect) tipoBeneficioSelect.disabled = true;
         if (promocionEscalable) promocionEscalable.disabled = true;
         
-        // Las secciones siempre son visibles, solo deshabilitamos los campos
         agregarClaseDeshabilitada(seccionCondiciones);
         agregarClaseDeshabilitada(seccionBeneficios);
     }
@@ -166,7 +165,6 @@ document.addEventListener('DOMContentLoaded', function () {
             configuracionProductos: configuracionProductosCompleta
         });
 
-        // Controlar visibilidad de secciones
         controlarSeccionCondiciones(informacionBasicaCompleta, configuracionProductosCompleta);
         controlarSeccionBeneficios(informacionBasicaCompleta, configuracionProductosCompleta);
         controlarPromocionEscalable();
@@ -205,10 +203,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const productosSeleccionados = Array.from(document.querySelectorAll('.productos-condicion-select'))
             .map(s => s.value).filter(val => val !== '');
 
-        // Habilitar sección solo si:
-        // 1. Información básica completa
-        // 2. Tipo filtro es "productos_especificos"  
-        // 3. Solo hay 1 producto seleccionado (si hay más de 1, se salta a beneficios)
         const habilitarCondiciones = informacionBasicaCompleta && 
                                 tipoFiltro === 'productos_especificos' && 
                                 productosSeleccionados.length === 1;
@@ -221,7 +215,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        // Habilitar/deshabilitar tipo de condición
         if (tipoCondicionSelect) {
             tipoCondicionSelect.disabled = !habilitarCondiciones;
             if (!habilitarCondiciones) {
@@ -237,25 +230,14 @@ document.addEventListener('DOMContentLoaded', function () {
         const tipoFiltro = document.querySelector('input[name="tipo_filtro"]:checked')?.value;
         const productosSeleccionados = Array.from(document.querySelectorAll('.productos-condicion-select'))
             .map(s => s.value).filter(val => val !== '');
-        const hayCondicionesLlenas = verificarCondicionesLlenas();
         
         let habilitarBeneficios = false;
 
         if (tipoFiltro === 'linea_marca') {
-            // CASO 1: Por Marca/Línea completa
-            // Se habilita cuando la configuración está completa
             habilitarBeneficios = informacionBasicaCompleta && configuracionProductosCompleta;
-            
         } else if (tipoFiltro === 'productos_especificos') {
-            // CASO 2: Productos específicos
             if (productosSeleccionados.length > 1) {
-                // Si hay más de 1 producto: habilitar beneficios directamente (saltar condiciones)
                 habilitarBeneficios = informacionBasicaCompleta && configuracionProductosCompleta;
-            } else if (productosSeleccionados.length === 1) {
-                // Si hay 1 producto: solo habilitar si hay condiciones llenas en intervalos
-                habilitarBeneficios = informacionBasicaCompleta && 
-                                    configuracionProductosCompleta && 
-                                    hayCondicionesLlenas;
             }
         }
 
@@ -267,7 +249,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        // Habilitar/deshabilitar tipo de beneficio
         if (tipoBeneficioSelect) {
             tipoBeneficioSelect.disabled = !habilitarBeneficios;
             if (!habilitarBeneficios) {
@@ -277,17 +258,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         console.log(`🎁 Beneficios: ${habilitarBeneficios ? 'HABILITADOS' : 'DESHABILITADOS'}`);
-        console.log(`   📊 Tipo filtro: ${tipoFiltro}`);
-        console.log(`   📦 Productos seleccionados: ${productosSeleccionados.length}`);
-        console.log(`   ⚙️ Condiciones llenas: ${hayCondicionesLlenas}`);
-    }
-
-    function verificarCondicionesLlenas() {
-        // Verificar si hay algún campo lleno en las tablas de condiciones
-        const descuentosLlenos = Array.from(document.querySelectorAll('.descuento-input')).some(input => input.value.trim() !== '');
-        const productosSeleccionados = Array.from(document.querySelectorAll('.producto-bonificado-select')).some(select => select.value !== '');
-        
-        return descuentosLlenos || productosSeleccionados;
     }
 
     function controlarPromocionEscalable() {
@@ -297,61 +267,61 @@ document.addEventListener('DOMContentLoaded', function () {
         const productosSeleccionados = Array.from(document.querySelectorAll('.productos-condicion-select'))
             .map(s => s.value).filter(val => val !== '');
         const tipoCondicion = tipoCondicionSelect?.value;
-        const tipoBeneficio = tipoBeneficioSelect?.value;
+        const tipoBeneficioValue = tipoBeneficioSelect?.value;
         
         let habilitarEscalable = false;
         let razonDeshabilitacion = '';
 
-        // === PRIMERA CONDICIÓN ===
-        // Productos específicos + 1 producto + Intervalos de Cantidad + Solo cantidad mínima
         if (tipoFiltro === 'productos_especificos' && 
             productosSeleccionados.length === 1 && 
             tipoCondicion === 'cantidad') {
             
-            // Verificar que solo se haya llenado la cantidad mínima
-            const soloTieneCantidadMinima = verificarSoloCantidadMinima();
+            const filasRangos = document.querySelectorAll('.rango-cantidad-item');
+            const soloUnaFila = filasRangos.length === 1;
             
-            if (soloTieneCantidadMinima) {
-                habilitarEscalable = true;
-                razonDeshabilitacion = 'Condición 1 cumplida: Producto específico + Intervalos de Cantidad + Solo cantidad mínima';
+            if (soloUnaFila) {
+                const tieneCantidadMinimaYProductos = verificarCantidadMinimaConProductosBonificados();
+                
+                if (tieneCantidadMinimaYProductos) {
+                    habilitarEscalable = true;
+                    razonDeshabilitacion = '✅ Condición 1 cumplida: 1 producto + 1 fila + cantidad mínima + producto bonificado';
+                } else {
+                    razonDeshabilitacion = '❌ Condición 1 incompleta: Falta cantidad mínima o producto bonificado en la fila';
+                }
             } else {
-                razonDeshabilitacion = 'Condición 1 incompleta: Hay más campos llenos además de cantidad mínima';
+                razonDeshabilitacion = `❌ Condición 1 incompleta: Debe haber exactamente 1 fila de rangos (actualmente: ${filasRangos.length})`;
             }
         }
-        
-        // === SEGUNDA CONDICIÓN ===
-        // Por Marca/Línea completa + Configuración completa + Tipo beneficio "Bonificación"
         else if (tipoFiltro === 'linea_marca') {
             const configuracionCompleta = verificarConfiguracionLineaMarca();
-            const tipoBeneficioTexto = tipoBeneficioSelect?.options[tipoBeneficioSelect?.selectedIndex]?.textContent?.toLowerCase() || '';
-            const esBonificacion = tipoBeneficioTexto.includes('bonificación') && !tipoBeneficioTexto.includes('ambos');
+            const esBonificacionOAmbos = tipoBeneficioValue === '1' || tipoBeneficioValue === '3';
             
-            if (configuracionCompleta && esBonificacion) {
+            if (configuracionCompleta && esBonificacionOAmbos) {
                 habilitarEscalable = true;
-                razonDeshabilitacion = 'Condición 2 cumplida: Marca/Línea completa + Bonificación';
+                const tipoBeneficioTexto = tipoBeneficioSelect?.options[tipoBeneficioSelect?.selectedIndex]?.textContent || '';
+                razonDeshabilitacion = `✅ Condición 2 cumplida: Marca/Línea completa + ${tipoBeneficioTexto}`;
             } else if (!configuracionCompleta) {
-                razonDeshabilitacion = 'Condición 2 incompleta: Falta completar campos de Marca/Línea';
-            } else if (!esBonificacion) {
-                razonDeshabilitacion = 'Condición 2 incompleta: Tipo de beneficio debe ser "Bonificación"';
+                razonDeshabilitacion = '❌ Condición 2 incompleta: Falta completar campos de Marca/Línea/Monto';
+            } else if (!esBonificacionOAmbos) {
+                razonDeshabilitacion = '❌ Condición 2 incompleta: Tipo de beneficio debe ser "Solo Bonificación" o "ambos"';
             }
         }
-        
-        // === CASOS QUE NO CALIFICAN ===
         else {
             if (tipoFiltro === 'productos_especificos') {
                 if (productosSeleccionados.length === 0) {
-                    razonDeshabilitacion = 'Debe seleccionar exactamente 1 producto específico';
+                    razonDeshabilitacion = '❌ Debe seleccionar exactamente 1 producto específico';
                 } else if (productosSeleccionados.length > 1) {
-                    razonDeshabilitacion = 'Debe seleccionar exactamente 1 producto (no múltiples)';
+                    razonDeshabilitacion = '❌ Debe seleccionar exactamente 1 producto (no múltiples)';
                 } else if (tipoCondicion !== 'cantidad') {
-                    razonDeshabilitacion = 'Debe seleccionar "Intervalos de Cantidad"';
+                    razonDeshabilitacion = '❌ Debe seleccionar "Por cantidad de productos"';
+                } else {
+                    razonDeshabilitacion = '❌ Falta configurar cantidad mínima y productos bonificados';
                 }
             } else {
-                razonDeshabilitacion = 'Configuración no válida para promoción escalable';
+                razonDeshabilitacion = '❌ Configuración no válida para promoción escalable';
             }
         }
 
-        // Aplicar el estado
         promocionEscalable.disabled = !habilitarEscalable;
         if (!habilitarEscalable) {
             promocionEscalable.checked = false;
@@ -359,95 +329,35 @@ document.addEventListener('DOMContentLoaded', function () {
 
         console.log(`♾️ Promoción Escalable: ${habilitarEscalable ? 'HABILITADA' : 'DESHABILITADA'}`);
         console.log(`   📝 Razón: ${razonDeshabilitacion}`);
-        console.log(`   📊 Estado actual:`, {
-            tipoFiltro,
-            productosCount: productosSeleccionados.length,
-            tipoCondicion,
-            tipoBeneficio: tipoBeneficioSelect?.options[tipoBeneficioSelect?.selectedIndex]?.textContent || 'No seleccionado'
-        });
     }
 
-    // === FUNCIONES AUXILIARES PARA LAS VALIDACIONES ===
-
-    function verificarSoloCantidadMinima() {
-        // Verificar que en la primera fila de intervalos de cantidad:
-        // - Solo esté llena la cantidad mínima
-        // - Los demás campos estén vacíos (cantidad máxima, descuento, productos bonificados)
-        
+    function verificarCantidadMinimaConProductosBonificados() {
         const primeraFila = document.querySelector('.rango-cantidad-item');
         if (!primeraFila) return false;
         
-        // Verificar cantidad mínima llena
         const cantidadMinima = primeraFila.querySelector('.cantidad-min-input')?.value?.trim();
-        if (!cantidadMinima) return false;
+        if (!cantidadMinima || parseInt(cantidadMinima) <= 0) return false;
         
-        // Verificar que cantidad máxima esté vacía
-        const cantidadMaxima = primeraFila.querySelector('input[name="cantidad_max[]"]')?.value?.trim();
-        if (cantidadMaxima) return false;
+        const productosBonificados = primeraFila.querySelectorAll('.producto-bonificado-select');
+        const hayProductoBonificado = Array.from(productosBonificados).some(select => select.value !== '');
         
-        // Verificar que descuento esté vacío
-        const descuento = primeraFila.querySelector('.descuento-input')?.value?.trim();
-        if (descuento) return false;
+        if (hayProductoBonificado) {
+            const cantidadesBonificadas = primeraFila.querySelectorAll('.cantidad-bonificada-input');
+            const hayCantidadBonificada = Array.from(cantidadesBonificadas).some(input => 
+                input.value?.trim() && parseInt(input.value) > 0
+            );
+            return hayCantidadBonificada;
+        }
         
-        // Verificar que no haya productos bonificados seleccionados
-        const productoBonificado = primeraFila.querySelector('.producto-bonificado-select')?.value;
-        if (productoBonificado) return false;
-        
-        // Verificar que no haya filas adicionales de rangos
-        const todasLasFilas = document.querySelectorAll('.rango-cantidad-item');
-        if (todasLasFilas.length > 1) return false;
-        
-        return true;
+        return false;
     }
 
     function verificarConfiguracionLineaMarca() {
-        // Verificar que estén completos los campos de marca/línea
         const marca = marcaSelect?.value;
         const linea = lineaSelect?.value;
         const monto = montoMinimoProductos?.value;
         
-        return !!(marca && linea && monto);
-    }
-
-    // === FUNCIÓN AUXILIAR PARA DEBUG ===
-    function mostrarEstadoEscalabilidad() {
-        // Función opcional para debugging - puedes llamarla desde la consola
-        console.log('🔍 ESTADO ACTUAL PARA PROMOCIÓN ESCALABLE:');
-        
-        const tipoFiltro = document.querySelector('input[name="tipo_filtro"]:checked')?.value;
-        const productosSeleccionados = Array.from(document.querySelectorAll('.productos-condicion-select'))
-            .map(s => s.value).filter(val => val !== '');
-        const tipoCondicion = tipoCondicionSelect?.value;
-        const tipoBeneficio = tipoBeneficioSelect?.value;
-        
-        console.log('📊 Configuración actual:', {
-            tipoFiltro,
-            productosSeleccionados: productosSeleccionados.length,
-            tipoCondicion,
-            tipoBeneficio
-        });
-        
-        if (tipoFiltro === 'productos_especificos') {
-            console.log('🔍 Verificando Condición 1...');
-            console.log('   ✓ Productos específicos: SÍ');
-            console.log(`   ${productosSeleccionados.length === 1 ? '✓' : '❌'} Exactamente 1 producto: ${productosSeleccionados.length === 1 ? 'SÍ' : 'NO'}`);
-            console.log(`   ${tipoCondicion === 'cantidad' ? '✓' : '❌'} Intervalos de Cantidad: ${tipoCondicion === 'cantidad' ? 'SÍ' : 'NO'}`);
-            
-            if (tipoCondicion === 'cantidad') {
-                const soloMinima = verificarSoloCantidadMinima();
-                console.log(`   ${soloMinima ? '✓' : '❌'} Solo cantidad mínima: ${soloMinima ? 'SÍ' : 'NO'}`);
-            }
-        } else if (tipoFiltro === 'linea_marca') {
-            console.log('🔍 Verificando Condición 2...');
-            console.log('   ✓ Marca/Línea completa: SÍ');
-            
-            const configCompleta = verificarConfiguracionLineaMarca();
-            console.log(`   ${configCompleta ? '✓' : '❌'} Configuración completa: ${configCompleta ? 'SÍ' : 'NO'}`);
-            
-            const tipoBeneficioTexto = tipoBeneficioSelect?.options[tipoBeneficioSelect?.selectedIndex]?.textContent || 'No seleccionado';
-            const esBonificacion = tipoBeneficioTexto.toLowerCase().includes('bonificación') && !tipoBeneficioTexto.toLowerCase().includes('ambos');
-            console.log(`   ${esBonificacion ? '✓' : '❌'} Tipo beneficio "Bonificación": ${esBonificacion ? 'SÍ' : 'NO'} (actual: ${tipoBeneficioTexto})`);
-        }
+        return !!(marca && linea && monto && parseFloat(monto) > 0);
     }
 
     // === CARGA DE DATOS ===
@@ -561,30 +471,51 @@ document.addEventListener('DOMContentLoaded', function () {
         console.log('🔄 Cambiando tipo de filtro...');
         
         const tipoSeleccionado = document.querySelector('input[name="tipo_filtro"]:checked')?.value;
+        console.log(`📊 Tipo seleccionado: ${tipoSeleccionado}`);
         
-        // Ocultar todas las configuraciones
         document.querySelectorAll('.configuracion-filtro').forEach(config => {
             config.classList.add('d-none');
         });
 
-        // Resetear campos específicos según el tipo
+        // Remover required de TODOS los campos que pueden estar ocultos
+        document.querySelectorAll('.productos-condicion-select').forEach(select => {
+            select.removeAttribute('required');
+        });
+
         if (tipoSeleccionado === 'linea_marca') {
             const configLinea = document.getElementById('config-linea-marca');
             if (configLinea) configLinea.classList.remove('d-none');
             
-            // Hacer campos obligatorios
             if (marcaSelect) marcaSelect.required = true;
             if (lineaSelect) lineaSelect.required = true;
             if (montoMinimoProductos) montoMinimoProductos.required = true;
+            
+            document.querySelectorAll('.productos-condicion-select').forEach(select => {
+                select.required = false;
+                select.removeAttribute('required');
+            });
             
         } else if (tipoSeleccionado === 'productos_especificos') {
             const configProductos = document.getElementById('config-productos-especificos');
             if (configProductos) configProductos.classList.remove('d-none');
             
-            // Quitar obligatoriedad de campos de marca/línea
-            if (marcaSelect) marcaSelect.required = false;
-            if (lineaSelect) lineaSelect.required = false;
-            if (montoMinimoProductos) montoMinimoProductos.required = false;
+            const primerProductoSelect = document.querySelector('.productos-condicion-select');
+            if (primerProductoSelect) {
+                primerProductoSelect.required = true;
+            }
+            
+            if (marcaSelect) {
+                marcaSelect.required = false;
+                marcaSelect.removeAttribute('required');
+            }
+            if (lineaSelect) {
+                lineaSelect.required = false;
+                lineaSelect.removeAttribute('required');
+            }
+            if (montoMinimoProductos) {
+                montoMinimoProductos.required = false;
+                montoMinimoProductos.removeAttribute('required');
+            }
         }
 
         evaluarEstadoFormulario();
@@ -608,7 +539,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         evaluarEstadoFormulario();
         controlarPromocionEscalable();
-
     }
 
     function ocultarTodasLasCondiciones() {
@@ -621,40 +551,26 @@ document.addEventListener('DOMContentLoaded', function () {
     function manejarCambioTipoBeneficio() {
         console.log('🔄 Cambiando tipo de beneficio...');
         
-        const tipoBeneficio = tipoBeneficioSelect.options[tipoBeneficioSelect.selectedIndex]?.textContent.toLowerCase();
+        const tipoBeneficioValue = tipoBeneficioSelect.value;
         
         ocultarTodosLosBeneficios();
 
-        if (tipoBeneficio.includes('bonificación') && !tipoBeneficio.includes('ambos')) {
+        if (tipoBeneficioValue === '1') {
             const beneficioBonif = document.getElementById('beneficios-bonificacion');
             if (beneficioBonif) {
                 beneficioBonif.classList.remove('d-none');
                 actualizarSelectsBonificacion();
-                // Hacer campos obligatorios
-                const selects = beneficioBonif.querySelectorAll('.select-bonificacion');
-                const inputs = beneficioBonif.querySelectorAll('input[name="cantidad_bonificada[]"]');
-                selects.forEach(select => select.required = true);
-                inputs.forEach(input => input.required = true);
             }
-        } else if (tipoBeneficio.includes('descuento') && !tipoBeneficio.includes('ambos')) {
+        } else if (tipoBeneficioValue === '2') {
             const beneficioDesc = document.getElementById('beneficios-descuento');
             if (beneficioDesc) {
                 beneficioDesc.classList.remove('d-none');
-                const descuentoInput = document.getElementById('descuento_general');
-                if (descuentoInput) descuentoInput.required = true;
             }
-        } else if (tipoBeneficio.includes('ambos')) {
+        } else if (tipoBeneficioValue === '3') {
             const beneficioAmbos = document.getElementById('beneficios-ambos');
             if (beneficioAmbos) {
                 beneficioAmbos.classList.remove('d-none');
                 actualizarSelectsBonificacion();
-                // Hacer campos obligatorios
-                const selects = beneficioAmbos.querySelectorAll('.select-bonificacion-ambos');
-                const inputs = beneficioAmbos.querySelectorAll('input[name="cantidad_bonificada_ambos[]"]');
-                const descuentoInput = document.getElementById('descuento_ambos');
-                selects.forEach(select => select.required = true);
-                inputs.forEach(input => input.required = true);
-                if (descuentoInput) descuentoInput.required = true;
             }
         }
 
@@ -665,13 +581,6 @@ document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('.beneficios-container').forEach(container => {
             container.classList.add('d-none');
         });
-        // Quitar obligatoriedad
-        document.querySelectorAll('#beneficios-bonificacion .select-bonificacion, #beneficios-bonificacion input[name="cantidad_bonificada[]"]').forEach(el => el.required = false);
-        document.querySelectorAll('#beneficios-ambos .select-bonificacion-ambos, #beneficios-ambos input[name="cantidad_bonificada_ambos[]"]').forEach(el => el.required = false);
-        const descuentoGeneral = document.getElementById('descuento_general');
-        const descuentoAmbos = document.getElementById('descuento_ambos');
-        if (descuentoGeneral) descuentoGeneral.required = false;
-        if (descuentoAmbos) descuentoAmbos.required = false;
     }
 
     // === PRODUCTOS CONDICIÓN ===
@@ -691,7 +600,6 @@ document.addEventListener('DOMContentLoaded', function () {
             if (e.target.classList.contains('productos-condicion-select')) {
                 actualizarSelectsProductos();
                 evaluarEstadoFormulario();
-                controlarPromocionEscalable();
             }
         });
     }
@@ -750,14 +658,12 @@ document.addEventListener('DOMContentLoaded', function () {
         const usados = Array.from(container.querySelectorAll('.productos-condicion-select'))
             .map(s => s.value).filter(val => val !== '').length;
 
-        // Botones de agregar
         const botonesAgregar = container.querySelectorAll('.btn-agregar-producto');
         const desactivarAgregar = usados >= articulosDisponibles.length;
         botonesAgregar.forEach(btn => {
             btn.disabled = desactivarAgregar;
         });
 
-        // Botones de eliminar
         filas.forEach(fila => {
             const btnEliminar = fila.querySelector('.btn-eliminar-producto');
             if (btnEliminar) {
@@ -766,14 +672,11 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // === RANGOS - FUNCIONES CORREGIDAS ===
+    // === RANGOS - VERSIÓN CORREGIDA PARA RANGOS ILIMITADOS ===
     function configurarRangos() {
-        // Delegación de eventos para tablas de rangos - CORREGIDA
         document.addEventListener('click', function(e) {
-            // Prevenir múltiples ejecuciones
             if (e.target.disabled) return;
             
-            // Rangos de cantidad
             if (e.target.classList.contains('btn-agregar-rango-cantidad')) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -785,14 +688,20 @@ document.addEventListener('DOMContentLoaded', function () {
             } else if (e.target.classList.contains('btn-agregar-producto-bonificado')) {
                 e.preventDefault();
                 e.stopPropagation();
-                agregarProductoBonificado(e.target);
+                
+                const tablaPadre = e.target.closest('table');
+                if (tablaPadre && tablaPadre.id === 'tabla-rangos-cantidad') {
+                    agregarProductoBonificado(e.target);
+                } else if (tablaPadre && tablaPadre.id === 'tabla-rangos-monto') {
+                    agregarProductoBonificadoMonto(e.target);
+                }
+                
             } else if (e.target.classList.contains('btn-quitar-producto-bonificado')) {
                 e.preventDefault();
                 e.stopPropagation();
                 quitarProductoBonificado(e.target);
             }
             
-            // Rangos de monto
             else if (e.target.classList.contains('btn-agregar-rango-monto')) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -804,7 +713,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
-        // Delegación de eventos para cambios en selects - CORREGIDA
         document.addEventListener('change', function(e) {
             if (e.target.classList.contains('producto-bonificado-select')) {
                 const fila = e.target.closest('.producto-bonificado-item');
@@ -816,22 +724,17 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 }
                 controlarPromocionEscalable();
-                evaluarEstadoFormulario();
-            } else if (e.target.classList.contains('descuento-input')) {
+            } else if (e.target.classList.contains('cantidad-min-input') || 
+                     e.target.name === 'cantidad_max[]') {
                 controlarPromocionEscalable();
-                evaluarEstadoFormulario();
-            }else if (e.target.classList.contains('cantidad-min-input') || 
-                 e.target.name === 'cantidad_max[]') {
-                controlarPromocionEscalable();
-                evaluarEstadoFormulario();
             }
         });
 
         document.addEventListener('input', function(e) {
             if (e.target.classList.contains('cantidad-min-input') || 
                 e.target.name === 'cantidad_max[]' ||
-                e.target.classList.contains('descuento-input')) {
-                // Usar setTimeout para dar tiempo a que se actualice el valor
+                e.target.classList.contains('descuento-input') ||
+                e.target.classList.contains('cantidad-bonificada-input')) {
                 setTimeout(() => {
                     controlarPromocionEscalable();
                 }, 100);
@@ -843,48 +746,82 @@ document.addEventListener('DOMContentLoaded', function () {
         const tabla = document.getElementById('tabla-rangos-cantidad-body');
         if (!tabla) return;
         
-        // Deshabilitar temporalmente el botón para evitar doble click
         const botonesAgregar = document.querySelectorAll('.btn-agregar-rango-cantidad');
         botonesAgregar.forEach(btn => btn.disabled = true);
         
-        const template = tabla.querySelector('.rango-cantidad-item');
-        const nuevo = template.cloneNode(true);
+        const filasExistentes = tabla.querySelectorAll('.rango-cantidad-item');
+        const nuevoIndice = filasExistentes.length;
         
-        // Limpiar valores del nuevo elemento
-        nuevo.querySelectorAll('input').forEach(input => {
-            input.value = '';
-            // Solo la primera fila tiene data-required
-            if (input.hasAttribute('data-required')) {
-                input.removeAttribute('data-required');
-            }
-        });
+        console.log(`✅ Agregando rango de cantidad con índice: ${nuevoIndice}`);
         
-        nuevo.querySelectorAll('select').forEach(select => {
-            select.value = '';
-        });
+        const nuevaFila = document.createElement('tr');
+        nuevaFila.className = 'rango-cantidad-item';
+        nuevaFila.setAttribute('data-index', nuevoIndice);
         
-        // Limpiar productos bonificados adicionales (dejar solo el primero)
-        const container = nuevo.querySelector('.productos-bonificados-container');
-        const productosItems = container.querySelectorAll('.producto-bonificado-item');
-        // Eliminar todos excepto el primero
-        for (let i = 1; i < productosItems.length; i++) {
-            productosItems[i].remove();
-        }
+        nuevaFila.innerHTML = `
+            <td>
+                <input type="number" name="cantidad_min[]" class="form-control cantidad-min-input" 
+                       min="1" placeholder="Ej: 4" data-rango-index="${nuevoIndice}">
+            </td>
+            <td>
+                <input type="number" name="cantidad_max[]" class="form-control" min="1" placeholder="Opcional"
+                       data-rango-index="${nuevoIndice}">
+                <small class="text-muted">Vacío = "en adelante"</small>
+            </td>
+            <td>
+                <input type="number" name="porcentaje_descuento_cantidad[]" class="form-control descuento-input" 
+                       min="0" max="100" step="0.01" placeholder="Ej: 5" data-rango-index="${nuevoIndice}">
+            </td>
+            <td>
+                <div class="productos-bonificados-container">
+                    <div class="producto-bonificado-item mb-2">
+                        <div class="row">
+                            <div class="col-7">
+                                <select name="producto_bonificado_cantidad_${nuevoIndice}[]" class="form-select producto-bonificado-select">
+                                    <option value="">Sin producto bonificado</option>
+                                </select>
+                            </div>
+                            <div class="col-3">
+                                <input type="number" name="cantidad_bonificada_cantidad_${nuevoIndice}[]" 
+                                       class="form-control cantidad-bonificada-input" 
+                                       min="1" placeholder="Cant." disabled>
+                            </div>
+                            <div class="col-2">
+                                <button type="button" class="btn btn-danger btn-sm btn-quitar-producto-bonificado" 
+                                        title="Quitar producto" style="display: none;">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-success btn-sm btn-agregar-producto-bonificado" 
+                        title="Agregar más productos bonificados">
+                    <i class="fas fa-plus"></i> Agregar Producto
+                </button>
+            </td>
+            <td>
+                <button type="button" class="btn btn-success btn-sm btn-agregar-rango-cantidad me-1 mb-1" 
+                        title="Agregar rango">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <button type="button" class="btn btn-danger btn-sm btn-eliminar-rango-cantidad" 
+                        title="Eliminar rango">
+                    <i class="fas fa-times"></i>
+                </button>
+            </td>
+        `;
         
-        // Actualizar índices
-        const nuevoIndice = contadorRangosCantidad++;
-        nuevo.setAttribute('data-index', nuevoIndice);
-        
-        tabla.appendChild(nuevo);
+        tabla.appendChild(nuevaFila);
         actualizarSelectsProductoBonificado();
+        contadorRangosCantidad = nuevoIndice + 1;
         
-        // Reactivar botones después de un pequeño delay
         setTimeout(() => {
             botonesAgregar.forEach(btn => btn.disabled = false);
             controlarPromocionEscalable();
         }, 300);
         
-        console.log('✅ Nuevo rango de cantidad agregado');
+        console.log(`✅ Rango de cantidad agregado. Total rangos: ${contadorRangosCantidad}`);
     }
 
     function eliminarRangoCantidad(boton) {
@@ -894,24 +831,41 @@ document.addEventListener('DOMContentLoaded', function () {
         const filas = tabla.querySelectorAll('.rango-cantidad-item');
         
         if (filas.length > 1) {
-            // Deshabilitar botón temporalmente
+            const filaAEliminar = boton.closest('.rango-cantidad-item');
+            const indiceEliminado = parseInt(filaAEliminar.getAttribute('data-index') || '0');
+            
+            console.log(`🗑️ Eliminando rango de cantidad ${indiceEliminado}`);
+            
             boton.disabled = true;
+            filaAEliminar.remove();
             
-            boton.closest('.rango-cantidad-item').remove();
+            // REINDEXAR todas las filas restantes
+            const filasRestantes = tabla.querySelectorAll('.rango-cantidad-item');
+            filasRestantes.forEach((fila, nuevoIndice) => {
+                console.log(`🔄 Reindexando fila de ${fila.getAttribute('data-index')} a ${nuevoIndice}`);
+                
+                fila.setAttribute('data-index', nuevoIndice);
+                
+                const inputs = fila.querySelectorAll('input[data-rango-index]');
+                inputs.forEach(input => {
+                    input.setAttribute('data-rango-index', nuevoIndice);
+                });
+                
+                const selectsProductos = fila.querySelectorAll('select[name*="producto_bonificado_cantidad_"]');
+                const inputsCantidades = fila.querySelectorAll('input[name*="cantidad_bonificada_cantidad_"]');
+                
+                selectsProductos.forEach(select => {
+                    select.name = `producto_bonificado_cantidad_${nuevoIndice}[]`;
+                });
+                
+                inputsCantidades.forEach(input => {
+                    input.name = `cantidad_bonificada_cantidad_${nuevoIndice}[]`;
+                });
+            });
             
-            // Restaurar obligatoriedad de la primera fila si es necesario
-            const primeraFila = tabla.querySelector('.rango-cantidad-item');
-            if (primeraFila) {
-                const cantidadMinInput = primeraFila.querySelector('.cantidad-min-input');
-                if (cantidadMinInput) {
-                    cantidadMinInput.setAttribute('data-required', 'true');
-                }
-            }
-            
+            contadorRangosCantidad = filasRestantes.length;
+            console.log(`✅ Rango eliminado. Rangos restantes: ${contadorRangosCantidad}`);
             controlarPromocionEscalable();
-            evaluarEstadoFormulario();
-            
-            console.log('✅ Rango de cantidad eliminado');
         }
     }
 
@@ -919,47 +873,81 @@ document.addEventListener('DOMContentLoaded', function () {
         const tabla = document.getElementById('tabla-rangos-monto-body');
         if (!tabla) return;
         
-        // Deshabilitar temporalmente el botón para evitar doble click
         const botonesAgregar = document.querySelectorAll('.btn-agregar-rango-monto');
         botonesAgregar.forEach(btn => btn.disabled = true);
         
-        const template = tabla.querySelector('.rango-monto-item');
-        const nuevo = template.cloneNode(true);
+        const filasExistentes = tabla.querySelectorAll('.rango-monto-item');
+        const nuevoIndice = filasExistentes.length;
         
-        // Limpiar valores del nuevo elemento
-        nuevo.querySelectorAll('input').forEach(input => {
-            input.value = '';
-            // Solo la primera fila tiene data-required
-            if (input.hasAttribute('data-required')) {
-                input.removeAttribute('data-required');
-            }
-        });
+        console.log(`✅ Agregando rango de monto con índice: ${nuevoIndice}`);
         
-        nuevo.querySelectorAll('select').forEach(select => {
-            select.value = '';
-        });
+        const nuevaFila = document.createElement('tr');
+        nuevaFila.className = 'rango-monto-item';
+        nuevaFila.setAttribute('data-index', nuevoIndice);
         
-        // Limpiar productos bonificados adicionales (dejar solo el primero)
-        const container = nuevo.querySelector('.productos-bonificados-container');
-        const productosItems = container.querySelectorAll('.producto-bonificado-item');
-        // Eliminar todos excepto el primero
-        for (let i = 1; i < productosItems.length; i++) {
-            productosItems[i].remove();
-        }
+        nuevaFila.innerHTML = `
+            <td>
+                <input type="number" name="monto_minimo[]" class="form-control monto-min-input" 
+                       min="0" step="0.01" placeholder="Ej: 300" data-rango-index="${nuevoIndice}">
+            </td>
+            <td>
+                <input type="number" name="monto_maximo[]" class="form-control" min="0" step="0.01" placeholder="Opcional"
+                       data-rango-index="${nuevoIndice}">
+                <small class="text-muted">Vacío = "en adelante"</small>
+            </td>
+            <td>
+                <input type="number" name="porcentaje_descuento_monto[]" class="form-control descuento-input" 
+                       min="0" max="100" step="0.01" placeholder="Ej: 5" data-rango-index="${nuevoIndice}">
+            </td>
+            <td>
+                <div class="productos-bonificados-container">
+                    <div class="producto-bonificado-item mb-2">
+                        <div class="row">
+                            <div class="col-7">
+                                <select name="producto_bonificado_monto_${nuevoIndice}[]" class="form-select producto-bonificado-select">
+                                    <option value="">Sin producto bonificado</option>
+                                </select>
+                            </div>
+                            <div class="col-3">
+                                <input type="number" name="cantidad_bonificada_monto_${nuevoIndice}[]" 
+                                       class="form-control cantidad-bonificada-input" 
+                                       min="1" placeholder="Cant." disabled>
+                            </div>
+                            <div class="col-2">
+                                <button type="button" class="btn btn-danger btn-sm btn-quitar-producto-bonificado" 
+                                        title="Quitar producto" style="display: none;">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-success btn-sm btn-agregar-producto-bonificado" 
+                        title="Agregar más productos bonificados">
+                    <i class="fas fa-plus"></i> Agregar Producto
+                </button>
+            </td>
+            <td>
+                <button type="button" class="btn btn-success btn-sm btn-agregar-rango-monto me-1 mb-1" 
+                        title="Agregar rango">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <button type="button" class="btn btn-danger btn-sm btn-eliminar-rango-monto" 
+                        title="Eliminar rango">
+                    <i class="fas fa-times"></i>
+                </button>
+            </td>
+        `;
         
-        // Actualizar índices
-        const nuevoIndice = contadorRangosMonto++;
-        nuevo.setAttribute('data-index', nuevoIndice);
-        
-        tabla.appendChild(nuevo);
+        tabla.appendChild(nuevaFila);
         actualizarSelectsProductoBonificado();
+        contadorRangosMonto = nuevoIndice + 1;
         
-        // Reactivar botones después de un pequeño delay
         setTimeout(() => {
             botonesAgregar.forEach(btn => btn.disabled = false);
         }, 300);
         
-        console.log('✅ Nuevo rango de monto agregado');
+        console.log(`✅ Rango de monto agregado. Total rangos: ${contadorRangosMonto}`);
     }
 
     function eliminarRangoMonto(boton) {
@@ -969,31 +957,50 @@ document.addEventListener('DOMContentLoaded', function () {
         const filas = tabla.querySelectorAll('.rango-monto-item');
         
         if (filas.length > 1) {
-            // Deshabilitar botón temporalmente
+            const filaAEliminar = boton.closest('.rango-monto-item');
+            const indiceEliminado = parseInt(filaAEliminar.getAttribute('data-index') || '0');
+            
+            console.log(`🗑️ Eliminando rango de monto ${indiceEliminado}`);
+            
             boton.disabled = true;
+            filaAEliminar.remove();
             
-            boton.closest('.rango-monto-item').remove();
+            // REINDEXAR todas las filas restantes
+            const filasRestantes = tabla.querySelectorAll('.rango-monto-item');
+            filasRestantes.forEach((fila, nuevoIndice) => {
+                console.log(`🔄 Reindexando fila de ${fila.getAttribute('data-index')} a ${nuevoIndice}`);
+                
+                fila.setAttribute('data-index', nuevoIndice);
+                
+                const inputs = fila.querySelectorAll('input[data-rango-index]');
+                inputs.forEach(input => {
+                    input.setAttribute('data-rango-index', nuevoIndice);
+                });
+                
+                const selectsProductos = fila.querySelectorAll('select[name*="producto_bonificado_monto_"]');
+                const inputsCantidades = fila.querySelectorAll('input[name*="cantidad_bonificada_monto_"]');
+                
+                selectsProductos.forEach(select => {
+                    select.name = `producto_bonificado_monto_${nuevoIndice}[]`;
+                });
+                
+                inputsCantidades.forEach(input => {
+                    input.name = `cantidad_bonificada_monto_${nuevoIndice}[]`;
+                });
+            });
             
-            // Restaurar obligatoriedad de la primera fila si es necesario
-            const primeraFila = tabla.querySelector('.rango-monto-item');
-            if (primeraFila) {
-                const montoMinInput = primeraFila.querySelector('.monto-min-input');
-                if (montoMinInput) {
-                    montoMinInput.setAttribute('data-required', 'true');
-                }
-            }
-            
-            evaluarEstadoFormulario();
-            
-            console.log('✅ Rango de monto eliminado');
+            contadorRangosMonto = filasRestantes.length;
+            console.log(`✅ Rango eliminado. Rangos restantes: ${contadorRangosMonto}`);
         }
     }
 
     function agregarProductoBonificado(boton) {
         const fila = boton.closest('tr');
         const container = fila.querySelector('.productos-bonificados-container');
+        const rangoIndex = fila.getAttribute('data-index') || '0';
         
-        // Deshabilitar botón temporalmente
+        console.log(`🎁 Agregando producto bonificado al rango ${rangoIndex}`);
+        
         boton.disabled = true;
         
         const nuevoProductoDiv = document.createElement('div');
@@ -1001,12 +1008,12 @@ document.addEventListener('DOMContentLoaded', function () {
         nuevoProductoDiv.innerHTML = `
             <div class="row">
                 <div class="col-7">
-                    <select name="producto_bonificado_cantidad[]" class="form-select producto-bonificado-select">
+                    <select name="producto_bonificado_cantidad_${rangoIndex}[]" class="form-select producto-bonificado-select">
                         <option value="">Seleccione producto</option>
                     </select>
                 </div>
                 <div class="col-3">
-                    <input type="number" name="cantidad_bonificada_cantidad[]" 
+                    <input type="number" name="cantidad_bonificada_cantidad_${rangoIndex}[]" 
                            class="form-control cantidad-bonificada-input" 
                            min="1" placeholder="Cant." disabled>
                 </div>
@@ -1021,16 +1028,56 @@ document.addEventListener('DOMContentLoaded', function () {
         
         container.appendChild(nuevoProductoDiv);
         actualizarSelectsProductoBonificado();
-        
-        // Mostrar botones de quitar para todos los productos bonificados
         actualizarBotonesQuitarProducto(container);
         
-        // Reactivar botón después de un delay
         setTimeout(() => {
             boton.disabled = false;
         }, 300);
         
-        console.log('✅ Producto bonificado agregado a la fila');
+        console.log(`✅ Producto bonificado agregado al rango ${rangoIndex}`);
+    }
+
+    function agregarProductoBonificadoMonto(boton) {
+        const fila = boton.closest('tr');
+        const container = fila.querySelector('.productos-bonificados-container');
+        const rangoIndex = fila.getAttribute('data-index') || '0';
+        
+        console.log(`🎁 Agregando producto bonificado al rango de monto ${rangoIndex}`);
+        
+        boton.disabled = true;
+        
+        const nuevoProductoDiv = document.createElement('div');
+        nuevoProductoDiv.className = 'producto-bonificado-item mb-2';
+        nuevoProductoDiv.innerHTML = `
+            <div class="row">
+                <div class="col-7">
+                    <select name="producto_bonificado_monto_${rangoIndex}[]" class="form-select producto-bonificado-select">
+                        <option value="">Seleccione producto</option>
+                    </select>
+                </div>
+                <div class="col-3">
+                    <input type="number" name="cantidad_bonificada_monto_${rangoIndex}[]" 
+                           class="form-control cantidad-bonificada-input" 
+                           min="1" placeholder="Cant." disabled>
+                </div>
+                <div class="col-2">
+                    <button type="button" class="btn btn-danger btn-sm btn-quitar-producto-bonificado" 
+                            title="Quitar producto">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        container.appendChild(nuevoProductoDiv);
+        actualizarSelectsProductoBonificado();
+        actualizarBotonesQuitarProducto(container);
+        
+        setTimeout(() => {
+            boton.disabled = false;
+        }, 300);
+        
+        console.log(`✅ Producto bonificado agregado al rango de monto ${rangoIndex}`);
     }
 
     function quitarProductoBonificado(boton) {
@@ -1038,16 +1085,10 @@ document.addEventListener('DOMContentLoaded', function () {
         const container = fila.querySelector('.productos-bonificados-container');
         const productosItems = container.querySelectorAll('.producto-bonificado-item');
         
-        // Solo permitir eliminar si hay más de uno
         if (productosItems.length > 1) {
             boton.closest('.producto-bonificado-item').remove();
-            
-            // Actualizar botones de quitar
             actualizarBotonesQuitarProducto(container);
-            
             controlarPromocionEscalable();
-            evaluarEstadoFormulario();
-            
             console.log('✅ Producto bonificado eliminado');
         }
     }
@@ -1057,7 +1098,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const botonesQuitar = container.querySelectorAll('.btn-quitar-producto-bonificado');
         
         botonesQuitar.forEach((btn, index) => {
-            // Mostrar botón de quitar solo si hay más de un producto
             if (productosItems.length > 1) {
                 btn.style.display = 'block';
             } else {
@@ -1066,7 +1106,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // FUNCIÓN ACTUALIZADA para manejar productos bonificados
     function actualizarSelectsProductoBonificado() {
         const selects = document.querySelectorAll('.producto-bonificado-select');
         
@@ -1085,7 +1124,6 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
         
-        // Actualizar botones de quitar después de actualizar selects
         document.querySelectorAll('.productos-bonificados-container').forEach(container => {
             actualizarBotonesQuitarProducto(container);
         });
@@ -1093,7 +1131,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // === BONIFICACIONES ===
     function configurarBonificaciones() {
-        // Delegación de eventos para bonificaciones
         document.addEventListener('click', function(e) {
             if (e.target.classList.contains('btn-agregar-bonificacion')) {
                 agregarBonificacion();
@@ -1176,43 +1213,282 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // === VALIDACIONES ===
-    const formulario = document.getElementById('form-promocion');
-    if (formulario) {
-        formulario.addEventListener('submit', function(e) {
-            console.log('📝 Enviando formulario...');
-            if (!validarFormulario()) {
-                e.preventDefault();
-                return false;
-            }
-        });
+    // === FUNCIONES NUEVAS PARA RANGOS ILIMITADOS ===
+    function contarRangosActivos() {
+        const rangosCantidad = document.querySelectorAll('#tabla-rangos-cantidad-body .rango-cantidad-item');
+        const rangosMonto = document.querySelectorAll('#tabla-rangos-monto-body .rango-monto-item');
+        
+        return {
+            cantidad: rangosCantidad.length,
+            monto: rangosMonto.length,
+            total: rangosCantidad.length + rangosMonto.length
+        };
     }
 
-    function validarFormulario() {
-        // Validar información básica
-        if (!verificarInformacionBasica()) {
-            alert('Por favor complete toda la información básica obligatoria');
+    function validarIndicesRangos() {
+        console.log('\n🔍 === VALIDANDO ÍNDICES DE RANGOS ===');
+        
+        const rangosCantidad = document.querySelectorAll('#tabla-rangos-cantidad-body .rango-cantidad-item');
+        rangosCantidad.forEach((fila, indiceEsperado) => {
+            const indiceAtributo = parseInt(fila.getAttribute('data-index') || '0');
+            const isValid = indiceAtributo === indiceEsperado;
+            
+            if (!isValid) {
+                console.log(`🔧 Corrigiendo índice de cantidad ${indiceAtributo} a ${indiceEsperado}`);
+                fila.setAttribute('data-index', indiceEsperado);
+            }
+            
+            const selectsProductos = fila.querySelectorAll('select[name*="producto_bonificado_cantidad_"]');
+            selectsProductos.forEach(select => {
+                const nombreEsperado = `producto_bonificado_cantidad_${indiceEsperado}[]`;
+                if (select.name !== nombreEsperado) {
+                    select.name = nombreEsperado;
+                }
+            });
+        });
+        
+        const rangosMonto = document.querySelectorAll('#tabla-rangos-monto-body .rango-monto-item');
+        rangosMonto.forEach((fila, indiceEsperado) => {
+            const indiceAtributo = parseInt(fila.getAttribute('data-index') || '0');
+            const isValid = indiceAtributo === indiceEsperado;
+            
+            if (!isValid) {
+                console.log(`🔧 Corrigiendo índice de monto ${indiceAtributo} a ${indiceEsperado}`);
+                fila.setAttribute('data-index', indiceEsperado);
+            }
+            
+            const selectsProductos = fila.querySelectorAll('select[name*="producto_bonificado_monto_"]');
+            selectsProductos.forEach(select => {
+                const nombreEsperado = `producto_bonificado_monto_${indiceEsperado}[]`;
+                if (select.name !== nombreEsperado) {
+                    select.name = nombreEsperado;
+                }
+            });
+        });
+        
+        console.log('=== FIN VALIDACIÓN ÍNDICES ===\n');
+    }
+
+    // ✅ FUNCIÓN 1: Determinar si se requieren rangos
+    function seRequierenRangos() {
+        const tipoFiltro = document.querySelector('input[name="tipo_filtro"]:checked')?.value;
+        const productosSeleccionados = Array.from(document.querySelectorAll('.productos-condicion-select'))
+            .map(s => s.value).filter(val => val !== '');
+        
+        // CASO 1: Productos específicos con EXACTAMENTE 1 producto → SÍ requiere rangos
+        if (tipoFiltro === 'productos_especificos' && productosSeleccionados.length === 1) {
+            return true;
+        }
+        
+        // CASO 2: Productos específicos con MÁS de 1 producto → NO requiere rangos
+        if (tipoFiltro === 'productos_especificos' && productosSeleccionados.length > 1) {
             return false;
         }
+        
+        // CASO 3: Marca/Línea completa → NO requiere rangos
+        if (tipoFiltro === 'linea_marca') {
+            return false;
+        }
+        
+        // Por defecto, no se requieren rangos
+        return false;
+    }
 
-        // Validar configuración de productos
+    // ✅ FUNCIÓN 2: Validar consistencia solo cuando se requieren rangos
+    function validarConsistenciaRangos() {
+        console.log('\n🔧 === VALIDANDO CONSISTENCIA DE RANGOS ===');
+        
+        // ✅ NUEVO: Verificar si se requieren rangos
+        if (!seRequierenRangos()) {
+            console.log('✅ No se requieren rangos para esta configuración, saltando validación');
+            return true;
+        }
+        
+        console.log('🎯 Se requieren rangos, procediendo con validación...');
+        
+        // Validar y corregir índices si es necesario
+        validarIndicesRangos();
+        
+        // Contar rangos activos
+        const stats = contarRangosActivos();
+        
+        if (stats.total === 0) {
+            console.log('❌ Se requieren rangos pero no hay ninguno configurado');
+            return false;
+        }
+        
+        // Verificar que cada rango tenga datos mínimos
+        let rangosValidos = 0;
+        
+        // Validar rangos de cantidad
+        const rangosCantidad = document.querySelectorAll('#tabla-rangos-cantidad-body .rango-cantidad-item');
+        rangosCantidad.forEach((fila, indice) => {
+            const cantidadMin = fila.querySelector('input[name="cantidad_min[]"]')?.value;
+            if (cantidadMin && parseInt(cantidadMin) > 0) {
+                rangosValidos++;
+                console.log(`✅ Rango cantidad ${indice}: válido (min: ${cantidadMin})`);
+            } else {
+                console.log(`⚠️ Rango cantidad ${indice}: inválido (min: ${cantidadMin})`);
+            }
+        });
+        
+        // Validar rangos de monto
+        const rangosMonto = document.querySelectorAll('#tabla-rangos-monto-body .rango-monto-item');
+        rangosMonto.forEach((fila, indice) => {
+            const montoMin = fila.querySelector('input[name="monto_minimo[]"]')?.value;
+            if (montoMin && parseFloat(montoMin) > 0) {
+                rangosValidos++;
+                console.log(`✅ Rango monto ${indice}: válido (min: S/${montoMin})`);
+            } else {
+                console.log(`⚠️ Rango monto ${indice}: inválido (min: ${montoMin})`);
+            }
+        });
+        
+        console.log(`📊 Resumen: ${rangosValidos} rangos válidos de ${stats.total} total`);
+        console.log('=== FIN VALIDACIÓN CONSISTENCIA ===\n');
+        
+        return rangosValidos > 0;
+    }
+
+    // === VALIDACIONES ===
+    function validarFormulario() {
+        console.log('🔍 === INICIANDO VALIDACIÓN DEL FORMULARIO ===');
+        
+        // 1. Validar información básica SIEMPRE
+        if (!verificarInformacionBasica()) {
+            console.log('❌ Validación fallida: Información básica incompleta');
+            alert('Por favor complete toda la información básica obligatoria:\n- Descripción\n- Empresa\n- Sucursal\n- Canal de Cliente\n- Fecha de Inicio\n- Fecha de Fin');
+            return false;
+        }
+        console.log('✅ Información básica válida');
+
+        // 2. Validar configuración de productos SIEMPRE
         if (!verificarConfiguracionProductos()) {
+            console.log('❌ Validación fallida: Configuración de productos incompleta');
             alert('Por favor complete la configuración de productos');
             return false;
         }
+        console.log('✅ Configuración de productos válida');
 
-        // Validaciones específicas según tipo de filtro
+        // 3. Validar estructura específica según el tipo de filtro
         const tipoFiltro = document.querySelector('input[name="tipo_filtro"]:checked')?.value;
+        const productosSeleccionados = Array.from(document.querySelectorAll('.productos-condicion-select'))
+            .map(s => s.value).filter(val => val !== '');
         
+        console.log(`📊 Tipo de filtro: ${tipoFiltro}`);
+        console.log(`📦 Productos seleccionados: ${productosSeleccionados.length}`);
+
         if (tipoFiltro === 'linea_marca') {
-            // Para marca/línea, verificar que tipo de beneficio esté seleccionado
-            if (!tipoBeneficioSelect?.value) {
-                alert('Por favor seleccione el tipo de beneficio');
+            // CASO: Por Marca/Línea completa - DEBE tener beneficios
+            const tipoBeneficio = tipoBeneficioSelect?.value;
+            if (!tipoBeneficio) {
+                console.log('❌ Validación fallida: Falta tipo de beneficio para marca/línea');
+                alert('Para promociones por Marca/Línea debe seleccionar un tipo de beneficio');
                 return false;
+            }
+            
+            if (!validarBeneficios(tipoBeneficio)) {
+                return false;
+            }
+            console.log('✅ Promoción por Marca/Línea válida');
+            
+        } else if (tipoFiltro === 'productos_especificos') {
+            
+            if (productosSeleccionados.length === 1) {
+                // CASO: 1 producto específico - DEBE tener condiciones/rangos
+                console.log('🎯 Validando caso: 1 producto específico (requiere rangos)');
+                
+                const tipoCondicion = tipoCondicionSelect?.value;
+                if (!tipoCondicion) {
+                    console.log('❌ Validación fallida: Falta tipo de condición para producto específico');
+                    alert('Para 1 producto específico debe configurar las condiciones de activación');
+                    return false;
+                }
+                
+                if (!validarCondiciones(tipoCondicion)) {
+                    return false;
+                }
+                console.log('✅ Producto específico con condiciones válido');
+                
+            } else if (productosSeleccionados.length > 1) {
+                // CASO: Múltiples productos específicos - DEBE tener beneficios (NO rangos)
+                console.log('🎁 Validando caso: múltiples productos específicos (requiere beneficios, NO rangos)');
+                
+                const tipoBeneficio = tipoBeneficioSelect?.value;
+                if (!tipoBeneficio) {
+                    console.log('❌ Validación fallida: Falta tipo de beneficio para múltiples productos');
+                    alert('Para múltiples productos específicos debe seleccionar un tipo de beneficio');
+                    return false;
+                }
+                
+                if (!validarBeneficios(tipoBeneficio)) {
+                    return false;
+                }
+                console.log('✅ Múltiples productos específicos con beneficios válido');
             }
         }
 
-        console.log('✅ Formulario validado correctamente');
+        console.log('✅ === FORMULARIO VÁLIDO COMPLETAMENTE ===');
+        return true;
+    }
+
+    function validarCondiciones(tipoCondicion) {
+        if (tipoCondicion === 'cantidad') {
+            const cantidadesMin = document.querySelectorAll('[name="cantidad_min[]"]');
+            const primerCantidad = cantidadesMin[0]?.value;
+            
+            if (!primerCantidad || parseInt(primerCantidad) <= 0) {
+                alert('Debe especificar al menos una cantidad mínima válida en las condiciones');
+                return false;
+            }
+            
+        } else if (tipoCondicion === 'monto') {
+            const montosMin = document.querySelectorAll('[name="monto_minimo[]"]');
+            const primerMonto = montosMin[0]?.value;
+            
+            if (!primerMonto || parseFloat(primerMonto) <= 0) {
+                alert('Debe especificar al menos un monto mínimo válido en las condiciones');
+                return false;
+            }
+        }
+        
+        return true;
+    }
+
+    function validarBeneficios(tipoBeneficio) {
+        if (tipoBeneficio === '1') {
+            const productos = document.querySelectorAll('#beneficios-bonificacion [name="productos_bonificados[]"]');
+            const cantidades = document.querySelectorAll('#beneficios-bonificacion [name="cantidad_bonificada[]"]');
+            
+            if (!productos[0]?.value || !cantidades[0]?.value || parseInt(cantidades[0].value) <= 0) {
+                alert('Debe seleccionar al menos un producto bonificado con su cantidad');
+                return false;
+            }
+            
+        } else if (tipoBeneficio === '2') {
+            const descuento = document.querySelector('#beneficios-descuento [name="porcentaje_descuento"]');
+            
+            if (!descuento?.value || parseFloat(descuento.value) <= 0) {
+                alert('Debe especificar un porcentaje de descuento válido mayor a 0');
+                return false;
+            }
+            
+        } else if (tipoBeneficio === '3') {
+            const productos = document.querySelectorAll('#beneficios-ambos [name="productos_bonificados_ambos[]"]');
+            const cantidades = document.querySelectorAll('#beneficios-ambos [name="cantidad_bonificada_ambos[]"]');
+            const descuento = document.querySelector('#beneficios-ambos [name="porcentaje_descuento_ambos"]');
+            
+            if (!productos[0]?.value || !cantidades[0]?.value || parseInt(cantidades[0].value) <= 0) {
+                alert('Debe seleccionar al menos un producto bonificado con su cantidad');
+                return false;
+            }
+            
+            if (!descuento?.value || parseFloat(descuento.value) <= 0) {
+                alert('Debe especificar un porcentaje de descuento válido mayor a 0');
+                return false;
+            }
+        }
+        
         return true;
     }
 
@@ -1240,5 +1516,139 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    console.log('✅ jvPromos.js inicializado completamente');
+    // === EVENT LISTENER PRINCIPAL DEL FORMULARIO ===
+    const formulario = document.getElementById('form-promocion');
+    if (formulario) {
+        formulario.addEventListener('submit', function(e) {
+            console.log('\n📝 === SUBMIT CON VALIDACIÓN DE RANGOS ILIMITADOS ===');
+            e.preventDefault();
+            
+            if (!validarConsistenciaRangos()) {
+                alert('❌ Error: Hay problemas con la configuración de rangos');
+                return false;
+            }
+            
+            debugFormularioDetallado();
+            
+            if (validarFormulario()) {
+                console.log('✅ Formulario válido, enviando...');
+                
+                const stats = contarRangosActivos();
+                console.log(`🚀 Enviando promoción con ${stats.total} rangos (${stats.cantidad} cantidad + ${stats.monto} monto)`);
+                
+                this.removeEventListener('submit', arguments.callee);
+                this.submit();
+            } else {
+                console.log('❌ Validación fallida');
+            }
+            
+            return false;
+        });
+        
+        console.log('✅ Event listener configurado para rangos ilimitados');
+    }
+
+    // === AUTO-VALIDACIÓN ===
+    document.addEventListener('change', function(e) {
+        if (e.target.matches('input[name*="cantidad_min"], input[name*="monto_minimo"]')) {
+            setTimeout(() => {
+                const stats = contarRangosActivos();
+                console.log(`🔄 Rangos modificados. Total activos: ${stats.total}`);
+            }, 500);
+        }
+    });
+
+
+    // ✅ FUNCIÓN 6: Debug mejorado que muestra el contexto
+    function debugFormularioDetallado() {
+        console.log('\n🔍 === DEBUG DETALLADO DEL FORMULARIO ===');
+        
+        const form = document.getElementById('form-promocion');
+        if (!form) {
+            console.log('❌ Formulario no encontrado');
+            return;
+        }
+        
+        const formData = new FormData(form);
+        
+        // Debug información básica
+        console.log('📋 INFORMACIÓN BÁSICA:');
+        console.log(`   descripcion: ${formData.get('descripcion')}`);
+        console.log(`   empresa: ${formData.get('empresa')}`);
+        
+        // Debug configuración de productos
+        const tipoFiltro = formData.get('tipo_filtro');
+        console.log('\n📦 CONFIGURACIÓN DE PRODUCTOS:');
+        console.log(`   tipo_filtro: ${tipoFiltro}`);
+        
+        if (tipoFiltro === 'linea_marca') {
+            console.log(`   grupo_proveedor: ${formData.get('grupo_proveedor')}`);
+            console.log(`   linea_articulo: ${formData.get('linea_articulo')}`);
+            console.log(`   monto_minimo_productos: ${formData.get('monto_minimo_productos')}`);
+        } else {
+            const productos = formData.getAll('productos_condicion');
+            console.log(`   productos_condicion: ${JSON.stringify(productos)}`);
+            console.log(`   total productos: ${productos.filter(p => p !== '').length}`);
+        }
+        
+        // Debug contexto de validación
+        const requiereRangos = seRequierenRangos();
+        console.log('\n🎯 CONTEXTO DE VALIDACIÓN:');
+        console.log(`   requiere_rangos: ${requiereRangos}`);
+        
+        // Debug condiciones (solo si se requieren rangos)
+        if (requiereRangos) {
+            const tipoCondicion = formData.get('tipo_condicion');
+            console.log(`   tipo_condicion: ${tipoCondicion}`);
+            
+            if (tipoCondicion === 'cantidad') {
+                const cantidadMin = formData.getAll('cantidad_min[]');
+                console.log(`   📊 RANGOS DE CANTIDAD: ${cantidadMin.length}`);
+                
+                for (let i = 0; i < cantidadMin.length; i++) {
+                    if (cantidadMin[i]) {
+                        const productos = formData.getAll(`producto_bonificado_cantidad_${i}[]`);
+                        const cantidades = formData.getAll(`cantidad_bonificada_cantidad_${i}[]`);
+                        console.log(`   📦 Rango cantidad ${i}: ${productos.filter(p => p !== '').length} productos`);
+                    }
+                }
+                
+            } else if (tipoCondicion === 'monto') {
+                const montoMin = formData.getAll('monto_minimo[]');
+                console.log(`   📊 RANGOS DE MONTO: ${montoMin.length}`);
+                
+                for (let i = 0; i < montoMin.length; i++) {
+                    if (montoMin[i]) {
+                        const productos = formData.getAll(`producto_bonificado_monto_${i}[]`);
+                        const cantidades = formData.getAll(`cantidad_bonificada_monto_${i}[]`);
+                        console.log(`   📦 Rango monto ${i}: ${productos.filter(p => p !== '').length} productos`);
+                    }
+                }
+            }
+        } else {
+            console.log('   ⚠️ No se requieren rangos para esta configuración');
+        }
+        
+        // Debug beneficios
+        const tipoBeneficio = formData.get('tipo_beneficio');
+        if (tipoBeneficio) {
+            console.log('\n🎁 BENEFICIOS:');
+            console.log(`   tipo_beneficio: ${tipoBeneficio}`);
+            
+            if (tipoBeneficio === '1') {
+                const productos = formData.getAll('productos_bonificados[]');
+                console.log(`   productos_bonificados: ${productos.filter(p => p !== '').length} productos`);
+            } else if (tipoBeneficio === '2') {
+                console.log(`   porcentaje_descuento: ${formData.get('porcentaje_descuento')}%`);
+            } else if (tipoBeneficio === '3') {
+                const productos = formData.getAll('productos_bonificados_ambos[]');
+                console.log(`   productos_bonificados_ambos: ${productos.filter(p => p !== '').length} productos`);
+                console.log(`   porcentaje_descuento_ambos: ${formData.get('porcentaje_descuento_ambos')}%`);
+            }
+        }
+        
+        console.log('=== FIN DEBUG DETALLADO ===\n');
+    }
+
+    console.log('✅ jvPromos.js configurado para RANGOS ILIMITADOS - Versión Completa con Condiciones de Guardado');
 });
