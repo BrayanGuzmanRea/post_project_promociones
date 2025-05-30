@@ -3,11 +3,10 @@ from decimal import Decimal
 import uuid
 from django.shortcuts import render, redirect
 from .models import (
-    # Modelos actualizados según nueva estructura
     ProductosBeneficios, BonificacionAplicada, Carrito, Cliente, 
     DescuentoAplicado, DetalleCarrito, DetallePedido, GrupoProveedor, 
     LineaArticulo, Pedido, Promocion, Rango, ProductoBonificadoRango,
-    Beneficio, StockSucursal, Usuario, Rol, VerificacionProducto
+    Beneficio, VerificacionProducto
 )
 from django.contrib import messages
 from .forms import PromocionForm, UsuarioForm
