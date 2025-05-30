@@ -43,4 +43,8 @@ urlpatterns = [
     path('api/lineas_por_marca/', views.obtener_lineas_por_marca, name='obtener_lineas_por_marca'),
     path('api/articulos_por_sucursal/', views.obtener_articulos_por_sucursal, name='obtener_articulos_por_sucursal'),
 
+    #Para mostrar el detalle de Pedido
+    path('carrito/detalle-pedido/<int:pedido_id>/', views.detalle_pedido, name='detalle_pedido'),
+
+
 ]

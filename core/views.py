@@ -522,7 +522,9 @@ def procesar_pedido(request):
             carrito.delete()
             
             messages.success(request, f"Pedido #{pedido.pedido_id} creado exitosamente")
-            return redirect('home')  # o redirigir a vista de pedidos
+            #Esto es para pasar a la vista de detalle pedido
+            return redirect('detalle_pedido', pedido_id=pedido.pedido_id)
+            #return redirect('home')  # o redirigir a vista de pedidos
             
     except Exception as e:
         messages.error(request, f"Error al procesar el pedido: {str(e)}")
@@ -1033,3 +1035,23 @@ def verificar_guardado_productos_bonificados_completo(promocion):
     print(f"   📦 Total productos bonificados: {total_productos_bonificados}")
     print(f"   ♾️ Escalable: {'Sí' if promocion.escalable else 'No'}")
     print(f"=== FIN VERIFICACIÓN COMPLETA ===\n")
+
+#Este es para mostrar el detalle de pedidos.
+@login_required
+def detalle_pedido(request, pedido_id):
+    pedido = get_object_or_404(Pedido, pk=pedido_id)
+    detalles = DetallePedido.objects.filter(pedido=pedido).select_related('articulo')
+
+    for item in detalles:
+        item.subtotal = item.cantidad * item.articulo.precio
+
+    bonificaciones = BonificacionAplicada.objects.filter(pedido=pedido).select_related('articulo', 'promocion')
+    descuentos = DescuentoAplicado.objects.filter(pedido=pedido).select_related('promocion')
+
+    context = {
+        'pedido': pedido,
+        'detalles': detalles,
+        'bonificaciones': bonificaciones,
+        'descuentos': descuentos,
+    }
+    return render(request, 'core/pedidos/detalle_pedido.html', context)
