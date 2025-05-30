@@ -10,14 +10,14 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='promocion',
-            name='grupo_proveedor_id',
-            field=models.UUIDField(blank=True, null=True),
-        ),
-        migrations.AddField(
-            model_name='promocion',
-            name='linea_articulo_id',
-            field=models.UUIDField(blank=True, null=True),
-        ),
+        # migrations.AddField(
+        #     model_name='promocion',
+        #     name='grupo_proveedor_id',
+        #     field=models.UUIDField(blank=True, null=True),
+        # ),
+        # migrations.AddField(
+        #     model_name='promocion',
+        #     name='linea_articulo_id',
+        #     field=models.UUIDField(blank=True, null=True),
+        # ),
     ]

@@ -10,26 +10,26 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='promocionproducto',
-            name='cantidad_max',
-            field=models.PositiveIntegerField(blank=True, null=True),
-        ),
-        migrations.AddField(
-            model_name='promocionproducto',
-            name='cantidad_min',
-            field=models.PositiveIntegerField(blank=True, null=True),
-        ),
-        migrations.AddField(
-            model_name='promocionproducto',
-            name='tipo_seleccion',
-            field=models.CharField(blank=True, max_length=20, null=True),
-        ),
-        migrations.AddField(
-            model_name='promocionproducto',
-            name='valor',
-            field=models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True),
-        ),
+        # migrations.AddField(
+        #     model_name='promocionproducto',
+        #     name='cantidad_max',
+        #     field=models.PositiveIntegerField(blank=True, null=True),
+        # ),
+        # migrations.AddField(
+        #     model_name='promocionproducto',
+        #     name='cantidad_min',
+        #     field=models.PositiveIntegerField(blank=True, null=True),
+        # ),
+        # migrations.AddField(
+        #     model_name='promocionproducto',
+        #     name='tipo_seleccion',
+        #     field=models.CharField(blank=True, max_length=20, null=True),
+        # ),
+        # migrations.AddField(
+        #     model_name='promocionproducto',
+        #     name='valor',
+        #     field=models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True),
+        # ),
         migrations.AlterField(
             model_name='promocion',
             name='tipo_condicion',

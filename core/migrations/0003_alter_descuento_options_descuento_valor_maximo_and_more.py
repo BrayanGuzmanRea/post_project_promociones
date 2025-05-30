@@ -14,16 +14,16 @@ class Migration(migrations.Migration):
             name='descuento',
             options={'ordering': ['valor_minimo'], 'verbose_name': 'Descuento', 'verbose_name_plural': 'Descuentos'},
         ),
-        migrations.AddField(
-            model_name='descuento',
-            name='valor_maximo',
-            field=models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True),
-        ),
-        migrations.AddField(
-            model_name='descuento',
-            name='valor_minimo',
-            field=models.DecimalField(decimal_places=2, max_digits=10, null=True),
-        ),
+        # migrations.AddField(
+        #     model_name='descuento',
+        #     name='valor_maximo',
+        #     field=models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True),
+        # ),
+        # migrations.AddField(
+        #     model_name='descuento',
+        #     name='valor_minimo',
+        #     field=models.DecimalField(decimal_places=2, max_digits=10, null=True),
+        # ),
         migrations.AlterField(
             model_name='descuento',
             name='porcentaje',
