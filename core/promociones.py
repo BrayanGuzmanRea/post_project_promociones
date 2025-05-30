@@ -114,10 +114,16 @@ def obtener_promociones_elegibles(cliente, empresa=None, sucursal=None):
         fecha_fin__gte=hoy      # Aún vigentes
     )
     
-    # Filtro por canal de cliente
+    # ✅ FILTRO MEJORADO POR CANAL DE CLIENTE
     if cliente and hasattr(cliente, 'canal_cliente'):
-        filtros &= Q(canal_cliente=cliente.canal_cliente)
-        print(f"🎯 Filtro por canal: {cliente.canal_cliente}")
+        # Crear filtro que incluya:
+        # 1. Promociones específicas para el canal del cliente
+        # 2. Promociones con canal_cliente_id = 5 ("Todos")
+        filtro_canal = Q(canal_cliente=cliente.canal_cliente) | Q(canal_cliente_id=5)
+        filtros &= filtro_canal
+        
+        print(f"🎯 Filtro por canal: {cliente.canal_cliente.nombre} (ID: {cliente.canal_cliente.canal_cliente_id})")
+        print(f"🌟 Incluye también: Promociones para 'Todos' (canal_cliente_id = 5)")
     
     # Filtro por empresa
     if empresa:
@@ -134,7 +140,8 @@ def obtener_promociones_elegibles(cliente, empresa=None, sucursal=None):
     print(f"📊 Promociones elegibles: {promociones.count()}")
     for promo in promociones:
         escalable_text = " (ESCALABLE)" if promo.escalable else ""
-        print(f"   - {promo.descripcion}{escalable_text}")
+        canal_info = f" [Canal: {promo.canal_cliente.nombre}]" if hasattr(promo.canal_cliente, 'nombre') else f" [Canal ID: {promo.canal_cliente_id}]"
+        print(f"   - {promo.descripcion}{escalable_text}{canal_info}")
     
     return promociones
 
