@@ -365,3 +365,5 @@ def aplicar_beneficios_generales(promocion, veces_aplicable=1):
             resultado['bonificaciones'].append(bonificacion)
     
     return resultado
+
+#comentario para poder hacer el commit y ver si funciona
