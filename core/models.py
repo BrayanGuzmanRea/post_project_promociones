@@ -181,9 +181,6 @@ class StockSucursal(models.Model):
 # ===== NUEVA ESTRUCTURA DE PROMOCIONES =====
 
 class Promocion(models.Model):
-    """
-    Tabla actualizada de promociones con la nueva estructura simplificada
-    """
     promocion_id = models.AutoField(primary_key=True)
     descripcion = models.CharField(max_length=255)
     empresa = models.ForeignKey(Empresa, on_delete=models.RESTRICT, related_name='promociones')
@@ -194,6 +191,7 @@ class Promocion(models.Model):
     grupo_proveedor_id = models.UUIDField(null=True, blank=True)
     linea_articulo_id = models.UUIDField(null=True, blank=True)
     monto_minimo = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    cantidad_minima = models.IntegerField(null=True, blank=True)
     escalable = models.BooleanField(default=False)
     estado = models.IntegerField(choices=EstadoEntidades.choices, default=EstadoEntidades.ACTIVO)
 
@@ -206,10 +204,6 @@ class Promocion(models.Model):
 
 
 class VerificacionProducto(models.Model):
-    """
-    Esta tabla se mantiene sin cambios - productos que deben estar en el carrito
-    para que aplique la promoción
-    """
     verificacion_id = models.AutoField(primary_key=True)
     articulo = models.ForeignKey('Articulo', on_delete=models.CASCADE, related_name='verificaciones')
     promocion = models.ForeignKey('Promocion', on_delete=models.CASCADE, related_name='verificaciones')
@@ -222,10 +216,6 @@ class VerificacionProducto(models.Model):
 
 
 class Rango(models.Model):
-    """
-    Nueva tabla de rangos - reemplaza a promocion_productos y descuentos
-    Define los intervalos de cantidad o monto que activan la promoción
-    """
     TIPO_CONDICION_CHOICES = [
         ('monto', 'Intervalos de Precios'),
         ('cantidad', 'Intervalos de Cantidad'),
@@ -250,10 +240,6 @@ class Rango(models.Model):
 
 
 class ProductoBonificadoRango(models.Model):
-    """
-    Nueva tabla que vincula productos bonificados con rangos específicos
-    Permite que cada rango tenga sus propios productos bonificados
-    """
     pro_boni_id = models.AutoField(primary_key=True)
     articulo = models.ForeignKey(Articulo, on_delete=models.CASCADE, related_name='bonificaciones_rango')
     cantidad = models.IntegerField()
@@ -267,9 +253,6 @@ class ProductoBonificadoRango(models.Model):
 
 
 class Beneficio(models.Model):
-    """
-    Nueva tabla de beneficios - define los tipos de beneficios de la promoción
-    """
     TIPO_BENEFICIO_CHOICES = [
         ('bonificacion', 'Solo Bonificación'),
         ('descuento', 'Solo Descuento'), 
@@ -290,10 +273,6 @@ class Beneficio(models.Model):
 
 
 class ProductosBeneficios(models.Model):
-    """
-    Nueva tabla que reemplaza a bonificaciones
-    Define qué productos se dan como beneficio y en qué cantidades
-    """
     pro_bene_id = models.AutoField(primary_key=True)
     articulo = models.ForeignKey(Articulo, on_delete=models.CASCADE, related_name='beneficios')
     cantidad = models.IntegerField()
@@ -306,7 +285,6 @@ class ProductosBeneficios(models.Model):
         return f"{self.cantidad} unidades de {self.articulo.descripcion}"
 
 
-# ===== MODELOS DE GESTIÓN DE PEDIDOS (SIN CAMBIOS) =====
 
 class BonificacionAplicada(models.Model):
     bonificacion_aplicada_id = models.AutoField(primary_key=True)

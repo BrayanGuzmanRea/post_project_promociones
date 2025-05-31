@@ -1,13 +1,9 @@
-# core/promociones.py - Motor de Evaluación de Promociones
 from decimal import Decimal
 from datetime import datetime
 from django.utils import timezone
 from django.db.models import Q, Sum
-from typing import Dict, List, Any, Optional
-import uuid
 
 from .models import Promocion, Rango, ProductoBonificadoRango, Beneficio, ProductosBeneficios,  VerificacionProducto
-
 
 def evaluar_promociones(carrito_detalle, cliente, empresa=None, sucursal=None):
     
@@ -26,12 +22,9 @@ def evaluar_promociones(carrito_detalle, cliente, empresa=None, sucursal=None):
             print("No hay promociones elegibles para este cliente/empresa")
             return resultado
         
-        print(f"Promociones elegibles encontradas: {len(promociones_elegibles)}")
         
         # Evaluar cada promoción
-        for promocion in promociones_elegibles:
-            print(f"\n🎯 === EVALUANDO PROMOCIÓN: {promocion.descripcion} ===")
-            
+        for promocion in promociones_elegibles:            
             try:
                 beneficios_promocion = evaluar_promocion_individual(
                     promocion, carrito_detalle, cliente
@@ -75,7 +68,7 @@ def obtener_promociones_elegibles(cliente, empresa=None, sucursal=None):
     hoy = timezone.now().date()
     
     filtros = Q(
-        estado=1,  # Promociones activas
+        estado=1,  # Promociones activas 1 y si es 9 no esta activa
         fecha_inicio__lte=hoy,  
         fecha_fin__gte=hoy      
     )
@@ -118,10 +111,8 @@ def evaluar_promocion_individual(promocion, carrito_detalle, cliente):
         rangos = Rango.objects.filter(promocion=promocion).order_by('minimo')
         
         if rangos.exists():
-            print(f"🎯 Evaluando {rangos.count()} rangos")
             return evaluar_promocion_con_rangos(promocion, carrito_detalle, productos_validos, rangos)
         else:
-            print(f"🎁 Evaluando beneficios generales (sin rangos)")
             return evaluar_promocion_sin_rangos(promocion, carrito_detalle, productos_validos)
             
     except Exception as e:
@@ -144,9 +135,11 @@ def verificar_productos_requeridos(promocion, carrito_detalle):
         
         if promocion.grupo_proveedor_id:
             filtros_productos &= Q(articulo__grupo_proveedor_id=promocion.grupo_proveedor_id)
+            print(f"Marca: {promocion.grupo_proveedor_id}")
         
         if promocion.linea_articulo_id:
             filtros_productos &= Q(articulo__linea_articulo_id=promocion.linea_articulo_id)
+            print(f"Línea: {promocion.linea_articulo_id}")
         
         productos_aplicables = carrito_detalle.filter(filtros_productos)
         
@@ -154,23 +147,37 @@ def verificar_productos_requeridos(promocion, carrito_detalle):
             resultado['razon'] = "No hay productos de la marca/línea especificada en el carrito"
             return resultado
         
+        # Calcular totales
         for detalle in productos_aplicables:
             resultado['productos_aplicables'].append(detalle)
             resultado['cantidad_total'] += detalle.cantidad
             resultado['monto_total'] += detalle.articulo.precio * detalle.cantidad
         
+        # Verificar cantidad mínima
+        if promocion.cantidad_minima and resultado['cantidad_total'] < promocion.cantidad_minima:
+            resultado['razon'] = f"Cantidad insuficiente: {resultado['cantidad_total']} < {promocion.cantidad_minima} unidades"
+            print(f"{resultado['razon']}")
+            return resultado
+        
+        # Verificar monto mínimo si está especificado
         if promocion.monto_minimo and resultado['monto_total'] < promocion.monto_minimo:
             resultado['razon'] = f"Monto insuficiente: S/{resultado['monto_total']} < S/{promocion.monto_minimo}"
+            print(f"{resultado['razon']}")
             return resultado
+        
+        
+        # MOSTRAR VALIDACIONES APROBADAS
+        if promocion.cantidad_minima:
+            print(f"Cantidad mínima cumplida: {resultado['cantidad_total']} >= {promocion.cantidad_minima}")
+        if promocion.monto_minimo:
+            print(f"Monto mínimo cumplido: S/{resultado['monto_total']} >= S/{promocion.monto_minimo}")
         
         resultado['cumple'] = True
         return resultado
     
     verificaciones = VerificacionProducto.objects.filter(promocion=promocion)
     
-    if verificaciones.exists():
-        print(f"Verificando productos específicos ({verificaciones.count()} requeridos)")
-        
+    if verificaciones.exists():        
         productos_requeridos = [v.articulo_id for v in verificaciones]
         productos_en_carrito = []
         
@@ -330,9 +337,7 @@ def aplicar_beneficios_generales(promocion, veces_aplicable=1):
     
     beneficios = Beneficio.objects.filter(promocion=promocion)
     
-    for beneficio in beneficios:
-        print(f"🎁 Aplicando beneficio: {beneficio.get_tipo_beneficio_display()}")
-        
+    for beneficio in beneficios:        
         # Descuento general
         if beneficio.descuento and beneficio.descuento > 0:
             descuento = {
@@ -360,4 +365,3 @@ def aplicar_beneficios_generales(promocion, veces_aplicable=1):
             resultado['bonificaciones'].append(bonificacion)
     
     return resultado
-

@@ -2,17 +2,11 @@ from datetime import timezone
 from decimal import Decimal
 import uuid
 from django.shortcuts import render, redirect
-from .models import (
-    ProductosBeneficios, BonificacionAplicada, Carrito, Cliente, 
-    DescuentoAplicado, DetalleCarrito, DetallePedido, GrupoProveedor, 
-    LineaArticulo, Pedido, Promocion, Rango, ProductoBonificadoRango,
-    Beneficio, VerificacionProducto
-)
+from .models import ProductosBeneficios, BonificacionAplicada, Carrito, Cliente, DescuentoAplicado, DetalleCarrito, DetallePedido, GrupoProveedor, LineaArticulo, Pedido, Promocion, Rango, ProductoBonificadoRango, Beneficio, VerificacionProducto
 from django.contrib import messages
-from .forms import PromocionForm, UsuarioForm
+from .forms import PromocionForm
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
-from django.template.loader import render_to_string
 from django.core.paginator import Paginator
 from .forms import ArticuloForm
 from core.models import Empresa, Sucursal, Articulo
@@ -23,8 +17,13 @@ from django.utils import timezone
 
 # Necesario para realizar las promociones
 from core.promociones import evaluar_promociones
-from core.models import CanalCliente
 
+# Este sera para trabajar por medio de insomia
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+from django.db import transaction
+import json
 
 def home(request):
     """
@@ -126,7 +125,6 @@ def articulos_list(request):
 
 #@login_required
 def articulo_detail(request, articulo_id):
-    """Vista para ver el detalle de un artículo"""
     articulo = get_object_or_404(Articulo, articulo_id=articulo_id)
 
     # Guardar en el historial de productos visitados
@@ -270,13 +268,7 @@ def vista_carrito(request):
         cliente = Cliente.objects.filter(usuario=usuario).first()
 
         # Evaluar promociones usando la nueva función
-        try:
-            print(f"\n🛒 === EVALUANDO PROMOCIONES PARA CARRITO ===")
-            print(f"👤 Usuario: {usuario.username}")
-            print(f"🎯 Cliente: {cliente}")
-            print(f"🏢 Empresa: {usuario.empresa}")
-            print(f"🏪 Sucursal: {usuario.sucursal}")
-            
+        try:           
             beneficios = evaluar_promociones(
                 carrito_detalle=detalles,
                 cliente=cliente,
@@ -286,9 +278,8 @@ def vista_carrito(request):
 
             # Procesar promociones aplicadas
             promociones_aplicadas = beneficios.get('promociones_aplicadas', [])
-            print(f"🎉 Promociones aplicadas: {len(promociones_aplicadas)}")
             
-            # ✅ PROCESAR BONIFICACIONES CON INFORMACIÓN DE ESCALABILIDAD
+            # PROCESAR BONIFICACIONES CON INFORMACIÓN DE ESCALABILIDAD
             for bonificacion in beneficios.get('bonificaciones', []):
                 beneficios_promociones.append({
                     'promocion': bonificacion['promocion'].descripcion,
@@ -301,9 +292,7 @@ def vista_carrito(request):
                     'veces_aplicable': bonificacion.get('veces_aplicable', 1)
                 })
                 
-                print(f"🎁 Bonificación procesada: {bonificacion['cantidad']} x {bonificacion['articulo'].descripcion}")
-
-            # ✅ PROCESAR DESCUENTOS CON INFORMACIÓN DE ESCALABILIDAD
+            # PROCESAR DESCUENTOS CON INFORMACIÓN DE ESCALABILIDAD
             for descuento in beneficios.get('descuentos', []):
                 # Calcular monto de descuento si no está calculado
                 if descuento.get('monto_descuento', 0) == 0 and descuento.get('porcentaje', 0) > 0:
@@ -335,7 +324,6 @@ def vista_carrito(request):
                 })
                 
                 total_descuento += monto_desc
-                print(f"💰 Descuento procesado: {descuento.get('porcentaje', 0)}% = S/{float(monto_desc)}")
 
             # Mostrar errores si los hay (para debugging)
             if beneficios.get('errores'):
@@ -354,22 +342,14 @@ def vista_carrito(request):
     subtotal = sum(item['total'] for item in articulos_carrito)
     total_venta = subtotal - total_descuento
 
-    # ✅ AGREGAR INFORMACIÓN DE DEBUG PARA ESCALABILIDAD
-    print(f"\n🛒 === RESUMEN FINAL DEL CARRITO ===")
-    print(f"   📦 Productos: {len(articulos_carrito)}")
-    print(f"   🎉 Promociones: {len(promociones_aplicadas)}")
-    print(f"   🎁 Bonificaciones: {len(beneficios_promociones)}")
+    # AGREGAR INFORMACIÓN DE DEBUG PARA ESCALABILIDAD
     for beneficio in beneficios_promociones:
         escalable_info = f" (Escalable {beneficio['veces_aplicable']}x)" if beneficio['escalable'] else ""
         print(f"      - {beneficio['descripcion']}: {beneficio['cantidad']} unidades{escalable_info}")
-    print(f"   💰 Descuentos: {len(descuentos_aplicados)}")
     for descuento in descuentos_aplicados:
         escalable_info = f" (Escalable {descuento['veces_aplicable']}x)" if descuento['escalable'] else ""
         print(f"      - {descuento['descripcion']}: S/{descuento['monto_descuento']}{escalable_info}")
-    print(f"   💵 Subtotal: S/{subtotal}")
-    print(f"   🔻 Total descuentos: S/{total_descuento}")
-    print(f"   💲 TOTAL FINAL: S/{total_venta}")
-    print(f"=== FIN RESUMEN ===\n")
+    
 
     return render(request, 'core/carrito/vistacarrito.html', {
         'articulos_carrito': articulos_carrito,
@@ -385,7 +365,6 @@ def vista_carrito(request):
 # Agregar estas funciones a tu views.py si no las tienes
 
 def obtener_sucursales_por_empresa(request):
-    """API para obtener sucursales filtradas por empresa"""
     empresa_id = request.GET.get('empresa_id')
     if not empresa_id:
         return JsonResponse([], safe=False)
@@ -397,7 +376,6 @@ def obtener_sucursales_por_empresa(request):
         return JsonResponse([], safe=False)
 
 def obtener_marcas_por_empresa(request):
-    """API para obtener marcas/proveedores filtrados por empresa"""
     empresa_id = request.GET.get('empresa_id')
     if not empresa_id:
         return JsonResponse([], safe=False)
@@ -412,7 +390,6 @@ def obtener_marcas_por_empresa(request):
         return JsonResponse([], safe=False)
 
 def obtener_lineas_por_marca(request):
-    """API para obtener líneas de artículos filtradas por marca"""
     marca_id = request.GET.get('marca_id')
     if not marca_id:
         return JsonResponse([], safe=False)
@@ -426,7 +403,6 @@ def obtener_lineas_por_marca(request):
         return JsonResponse([], safe=False)   
 
 def obtener_articulos_por_sucursal(request):
-    """API para obtener artículos filtrados por sucursal"""
     sucursal_id = request.GET.get('sucursal_id')
 
     try:
@@ -451,9 +427,6 @@ def obtener_articulos_por_sucursal(request):
 
 
 def procesar_pedido(request):
-    """
-    Nueva vista para procesar el pedido y guardar los beneficios aplicados
-    """
     if request.method != 'POST':
         return redirect('vista_carrito')
     
@@ -490,13 +463,11 @@ def procesar_pedido(request):
                 if descuento.get('monto_descuento'):
                     total_descuento += Decimal(str(descuento['monto_descuento']))
                 elif descuento.get('porcentaje'):
-                    # Calcular descuento sobre subtotal
                     desc_monto = subtotal * (Decimal(str(descuento['porcentaje'])) / 100)
                     total_descuento += desc_monto
             
             total_final = subtotal - total_descuento
             
-            # Crear el pedido
             pedido = Pedido.objects.create(
                 cliente=cliente,
                 sucursal=usuario.sucursal or detalles.first().articulo.sucursal,
@@ -505,7 +476,6 @@ def procesar_pedido(request):
                 total=total_final
             )
             
-            # Crear detalles del pedido
             for detalle in detalles:
                 DetallePedido.objects.create(
                     pedido=pedido,
@@ -514,7 +484,6 @@ def procesar_pedido(request):
                     precio_unitario=detalle.articulo.precio
                 )
             
-            # Guardar beneficios aplicados
             guardar_beneficios_en_pedido(pedido, beneficios)
             
             # Limpiar carrito
@@ -529,9 +498,7 @@ def procesar_pedido(request):
 
 
 def guardar_beneficios_en_pedido(pedido, beneficios):
-    """
-    Guarda los beneficios aplicados en el pedido (función actualizada para nueva estructura)
-    """
+    
     # Guardar bonificaciones
     for bon in beneficios.get('bonificaciones', []):
         BonificacionAplicada.objects.create(
@@ -543,10 +510,8 @@ def guardar_beneficios_en_pedido(pedido, beneficios):
     
     # Guardar descuentos
     for desc in beneficios.get('descuentos', []):
-        # Calcular monto si no está calculado
         monto_descuento = desc.get('monto_descuento', 0)
         if monto_descuento == 0 and desc.get('porcentaje'):
-            # Necesitarías el monto base para calcular
             monto_descuento = 0  # Por ahora, mejorar según necesidades
         
         DescuentoAplicado.objects.create(
@@ -557,50 +522,25 @@ def guardar_beneficios_en_pedido(pedido, beneficios):
         )
 
 
-
-
 # Apartir de aca inicia lo que tiene que ver con registrar la promocion
 def registrar_promocion(request):
-    """
-    Vista principal para registrar promociones
-    """
     if request.method == 'POST':
         return procesar_nueva_promocion(request)
     else:
         form = PromocionForm()
         return render(request, 'core/promociones/registrar_promocion.html', {'form': form})
 
-def procesar_nueva_promocion(request):
-    """
-    Función unificada para procesar y guardar toda la información de la promoción
-    VERSIÓN CORREGIDA PARA RANGOS ILIMITADOS
-    """
-    
-    # ====== DEBUG: Verificar datos recibidos ======
-    print(f"\n🚀 === PETICIÓN RECIBIDA ===")
-    print(f"📊 Método: {request.method}")
-    print(f"📊 Usuario: {request.user}")
-    
-    # Debug específico para rangos ilimitados
-    debug_post_data_rangos_ilimitados(request)
-    
-    # Verificar datos críticos
+def procesar_nueva_promocion(request):    
     descripcion = request.POST.get('descripcion', '').strip()
-    print(f"📋 Descripción: '{descripcion}'")
-    
+ 
     if not descripcion:
-        print("❌ ERROR: Descripción vacía")
         messages.error(request, "La descripción es obligatoria")
         form = PromocionForm()
         return render(request, 'core/promociones/registrar_promocion.html', {'form': form})
     
     try:
-        with transaction.atomic():
-            print("\n🚀 === INICIANDO PROCESAMIENTO UNIFICADO DE PROMOCIÓN ===")
-            
-            # ====== PASO 1: CREAR LA PROMOCIÓN BASE ======
-            print("📋 Paso 1: Creando promoción base...")
-            
+        with transaction.atomic():            
+            # CREAR LA PROMOCIÓN BASE 
             promocion = Promocion.objects.create(
                 descripcion=descripcion,
                 empresa_id=request.POST.get('empresa'),
@@ -613,58 +553,40 @@ def procesar_nueva_promocion(request):
             )
             
             escalable_text = " (ESCALABLE)" if promocion.escalable else ""
-            print(f"✅ Promoción base creada: {promocion.descripcion}{escalable_text}")
-            
-            # ====== PASO 2: CONFIGURACIÓN DE PRODUCTOS ======
-            print("📦 Paso 2: Configurando productos...")
             
             tipo_filtro = request.POST.get('tipo_filtro', 'productos_especificos')
-            print(f"   📊 Tipo de filtro: {tipo_filtro}")
             
             if tipo_filtro == 'linea_marca':
-                # CASO: Por Marca/Línea completa → Guardar en campos de promoción
                 marca_id = request.POST.get('grupo_proveedor')
                 linea_id = request.POST.get('linea_articulo')
                 monto_minimo = request.POST.get('monto_minimo_productos')
                 
                 if marca_id:
                     promocion.grupo_proveedor_id = marca_id
-                    print(f"   ✅ Marca/Proveedor guardado: {marca_id}")
                 
                 if linea_id:
                     promocion.linea_articulo_id = linea_id
-                    print(f"   ✅ Línea artículo guardada: {linea_id}")
                 
                 if monto_minimo:
                     promocion.monto_minimo = float(monto_minimo)
-                    print(f"   ✅ Monto mínimo guardado: S/{monto_minimo}")
                 
                 promocion.save()
                 
             else:
-                # CASO: Productos específicos → Guardar en tabla verificacion_productos
                 productos_condicion = request.POST.getlist('productos_condicion')
                 productos_validos = [p for p in productos_condicion if p]
-                
-                print(f"   📦 Productos específicos seleccionados: {len(productos_validos)}")
-                
+                                
                 for producto_id in productos_validos:
                     VerificacionProducto.objects.create(
                         articulo_id=producto_id,
                         promocion=promocion
                     )
-                    print(f"   ✅ Producto verificación guardado: {producto_id}")
             
-            # ====== PASO 3: CONDICIONES DE ACTIVACIÓN (RANGOS ILIMITADOS) ======
             procesar_condiciones_rangos_ilimitados(request, promocion)
-            
-            # ====== PASO 4: BENEFICIOS DE LA PROMOCIÓN ======
-            print("🎁 Paso 4: Configurando beneficios de la promoción...")
             
             tipo_beneficio = request.POST.get('tipo_beneficio')
             
             if tipo_beneficio:
-                # Convertir el valor numérico a texto
                 tipo_beneficio_texto = ''
                 if tipo_beneficio == '1':
                     tipo_beneficio_texto = 'bonificacion'
@@ -672,10 +594,7 @@ def procesar_nueva_promocion(request):
                     tipo_beneficio_texto = 'descuento'
                 elif tipo_beneficio == '3':
                     tipo_beneficio_texto = 'ambos'
-                
-                print(f"   📊 Tipo de beneficio: {tipo_beneficio_texto}")
-                
-                # Obtener descuento general según el tipo
+                                
                 descuento_general = None
                 if tipo_beneficio_texto in ['descuento', 'ambos']:
                     if tipo_beneficio_texto == 'descuento':
@@ -683,18 +602,14 @@ def procesar_nueva_promocion(request):
                     else:  # ambos
                         descuento_general = request.POST.get('porcentaje_descuento_ambos')
                 
-                # Crear el registro de beneficio
                 beneficio = Beneficio.objects.create(
                     promocion=promocion,
                     tipo_beneficio=tipo_beneficio_texto,
                     descuento=float(descuento_general) if descuento_general else None
                 )
-                
-                print(f"   ✅ Beneficio general creado: {tipo_beneficio_texto}, descuento: {descuento_general or '0'}%")
-                
+                                
                 # Configurar productos beneficiados si aplica
                 if tipo_beneficio_texto in ['bonificacion', 'ambos']:
-                    print("   🎁 Configurando productos beneficiados...")
                     
                     if tipo_beneficio_texto == 'ambos':
                         productos = request.POST.getlist('productos_bonificados_ambos[]')
@@ -702,9 +617,7 @@ def procesar_nueva_promocion(request):
                     else:  # bonificacion
                         productos = request.POST.getlist('productos_bonificados[]')
                         cantidades = request.POST.getlist('cantidad_bonificada[]')
-                    
-                    print(f"   📦 Productos beneficiados encontrados: {len(productos)}")
-                    
+                                        
                     for producto_id, cantidad in zip(productos, cantidades):
                         if producto_id and cantidad:
                             ProductosBeneficios.objects.create(
@@ -712,22 +625,8 @@ def procesar_nueva_promocion(request):
                                 articulo_id=producto_id,
                                 cantidad=int(cantidad)
                             )
-                            print(f"   ✅ Producto beneficiado guardado: {cantidad} unidades del artículo {producto_id}")
             else:
-                print("   ⚠️ No hay beneficios de promoción definidos")
-            
-            # ====== FINALIZACIÓN ======
-            print(f"✅ === PROMOCIÓN GUARDADA EXITOSAMENTE: {promocion.descripcion} (ID: {promocion.promocion_id}) ===\n")
-            
-            # Verificación final
-            verificar_guardado_productos_bonificados_completo(promocion)
-            
-            # Mostrar resumen final
-            print("📊 RESUMEN FINAL:")
-            print(f"   🏢 Empresa: {promocion.empresa.nombre}")
-            print(f"   🏪 Sucursal: {promocion.sucursal.nombre if promocion.sucursal else 'Todas'}")
-            print(f"   📅 Vigencia: {promocion.fecha_inicio} - {promocion.fecha_fin}")
-            print(f"   ♾️ Escalable: {'Sí' if promocion.escalable else 'No'}")
+                print("No hay beneficios de promoción definidos")
             
             # Contar elementos relacionados
             verificaciones = VerificacionProducto.objects.filter(promocion=promocion).count()
@@ -735,91 +634,24 @@ def procesar_nueva_promocion(request):
             beneficios = Beneficio.objects.filter(promocion=promocion).count()
             productos_bonificados_total = ProductoBonificadoRango.objects.filter(rango__promocion=promocion).count()
             
-            print(f"   📦 Productos verificación: {verificaciones}")
-            print(f"   🎯 Rangos de condiciones: {rangos}")
-            print(f"   🎁 Beneficios: {beneficios}")
-            print(f"   🎁 Productos bonificados en rangos: {productos_bonificados_total}")
-            
             messages.success(request, f'Promoción "{promocion.descripcion}" creada exitosamente')
             return redirect('home')
             
     except Exception as e:
-        print(f"❌ ERROR al procesar promoción: {str(e)}")
         import traceback
         traceback.print_exc()
         messages.error(request, f"Error al registrar la promoción: {str(e)}")
         form = PromocionForm()
         return render(request, 'core/promociones/registrar_promocion.html', {'form': form})
 
-
-def debug_post_data_rangos_ilimitados(request):
-    """
-    Función de debug para verificar los datos POST relacionados con rangos - VERSIÓN ILIMITADA
-    """
-    print("\n🔍 === DEBUG POST DATA - RANGOS ILIMITADOS ===")
-    
-    # Debug rangos de cantidad
-    cantidades_min = request.POST.getlist('cantidad_min[]')
-    print(f"📊 TOTAL Rangos de cantidad detectados: {len(cantidades_min)}")
-    
-    if cantidades_min:
-        print("🎯 DETALLE RANGOS DE CANTIDAD:")
-        for i in range(len(cantidades_min)):
-            if cantidades_min[i]:  # Solo procesar rangos con datos
-                productos_key = f'producto_bonificado_cantidad_{i}[]'
-                cantidades_key = f'cantidad_bonificada_cantidad_{i}[]'
-                
-                productos = request.POST.getlist(productos_key)
-                cantidades = request.POST.getlist(cantidades_key)
-                
-                print(f"   🎯 Rango cantidad {i}:")
-                print(f"      cantidad_min: {cantidades_min[i]}")
-                print(f"      cantidad_max: {request.POST.getlist('cantidad_max[]')[i] if i < len(request.POST.getlist('cantidad_max[]')) else 'N/A'}")
-                print(f"      descuento: {request.POST.getlist('porcentaje_descuento_cantidad[]')[i] if i < len(request.POST.getlist('porcentaje_descuento_cantidad[]')) else 'N/A'}%")
-                print(f"      productos ({productos_key}): {productos}")
-                print(f"      cantidades ({cantidades_key}): {cantidades}")
-                print(f"      productos válidos: {len([p for p in productos if p])}")
-    
-    # Debug rangos de monto
-    montos_min = request.POST.getlist('monto_minimo[]')
-    print(f"📊 TOTAL Rangos de monto detectados: {len(montos_min)}")
-    
-    if montos_min:
-        print("💰 DETALLE RANGOS DE MONTO:")
-        for i in range(len(montos_min)):
-            if montos_min[i]:  # Solo procesar rangos con datos
-                productos_key = f'producto_bonificado_monto_{i}[]'
-                cantidades_key = f'cantidad_bonificada_monto_{i}[]'
-                
-                productos = request.POST.getlist(productos_key)
-                cantidades = request.POST.getlist(cantidades_key)
-                
-                print(f"   💰 Rango monto {i}:")
-                print(f"      monto_min: S/{montos_min[i]}")
-                print(f"      monto_max: S/{request.POST.getlist('monto_maximo[]')[i] if i < len(request.POST.getlist('monto_maximo[]')) else 'N/A'}")
-                print(f"      descuento: {request.POST.getlist('porcentaje_descuento_monto[]')[i] if i < len(request.POST.getlist('porcentaje_descuento_monto[]')) else 'N/A'}%")
-                print(f"      productos ({productos_key}): {productos}")
-                print(f"      cantidades ({cantidades_key}): {cantidades}")
-                print(f"      productos válidos: {len([p for p in productos if p])}")
-    
-    print(f"\n✅ RESUMEN TOTAL: {len(cantidades_min)} rangos cantidad + {len(montos_min)} rangos monto")
-    print("=== FIN DEBUG POST DATA ===\n")
-
-
 def procesar_condiciones_rangos_ilimitados(request, promocion):
-    """
-    Procesa las condiciones de activación (rangos) sin límite de cantidad - VERSIÓN COMPLETA
-    """
-    print("🎯 Paso 3: Configurando condiciones de activación (rangos ilimitados)...")
     
     tipo_condicion = request.POST.get('tipo_condicion')
     
     if not tipo_condicion:
-        print("   ⚠️ No hay condiciones de activación definidas")
+        print("No hay condiciones de activación definidas")
         return
-    
-    print(f"   📈 Tipo de condición: {tipo_condicion}")
-    
+        
     if tipo_condicion == 'cantidad':
         procesar_rangos_cantidad_ilimitados(request, promocion)
     elif tipo_condicion == 'monto':
@@ -827,36 +659,23 @@ def procesar_condiciones_rangos_ilimitados(request, promocion):
 
 
 def procesar_rangos_cantidad_ilimitados(request, promocion):
-    """
-    Procesa rangos de cantidad sin límite - VERSIÓN CORREGIDA
-    """
-    print("   🔢 Procesando rangos de cantidad ilimitados...")
-    
     cantidades_min = request.POST.getlist('cantidad_min[]')
     cantidades_max = request.POST.getlist('cantidad_max[]')
     descuentos = request.POST.getlist('porcentaje_descuento_cantidad[]')
     
-    # Filtrar solo rangos con datos válidos
     rangos_validos = [(i, cm) for i, cm in enumerate(cantidades_min) if cm and cm.strip()]
     total_rangos = len(rangos_validos)
     
-    print(f"   📊 Rangos de cantidad válidos encontrados: {total_rangos}")
+    print(f"Rangos de cantidad válidos encontrados: {total_rangos}")
     
     rangos_guardados = 0
     productos_guardados_total = 0
     
     # PROCESAR TODOS LOS RANGOS DINÁMICAMENTE
-    for posicion_real, (indice_original, cantidad_min) in enumerate(rangos_validos):
-        print(f"\n   🎯 === PROCESANDO RANGO CANTIDAD {posicion_real + 1} (índice frontend: {indice_original}) ===")
-        
+    for posicion_real, (indice_original, cantidad_min) in enumerate(rangos_validos):        
         # Obtener datos del rango
         cantidad_max = cantidades_max[indice_original] if indice_original < len(cantidades_max) and cantidades_max[indice_original] else None
         descuento = descuentos[indice_original] if indice_original < len(descuentos) and descuentos[indice_original] else None
-        
-        print(f"   📊 Datos del rango:")
-        print(f"      Cantidad mínima: {cantidad_min}")
-        print(f"      Cantidad máxima: {cantidad_max or 'Sin límite'}")
-        print(f"      Descuento: {descuento or '0'}%")
         
         # Crear el rango en la base de datos
         rango = Rango.objects.create(
@@ -868,22 +687,13 @@ def procesar_rangos_cantidad_ilimitados(request, promocion):
         )
         
         rangos_guardados += 1
-        print(f"   ✅ Rango guardado en BD con ID: {rango.rango_id}")
         
-        # PROCESAR PRODUCTOS BONIFICADOS ESPECÍFICOS DE ESTE RANGO
         productos_rango_key = f'producto_bonificado_cantidad_{indice_original}[]'
         cantidades_rango_key = f'cantidad_bonificada_cantidad_{indice_original}[]'
         
         productos_bonificados_rango = request.POST.getlist(productos_rango_key)
         cantidades_bonificadas_rango = request.POST.getlist(cantidades_rango_key)
         
-        print(f"   🔍 Buscando productos bonificados para rango:")
-        print(f"      Clave productos: {productos_rango_key}")
-        print(f"      Clave cantidades: {cantidades_rango_key}")
-        print(f"      Productos encontrados: {len(productos_bonificados_rango)}")
-        print(f"      Cantidades encontradas: {len(cantidades_bonificadas_rango)}")
-        
-        # Guardar productos bonificados específicos de este rango
         productos_rango_guardados = 0
         for j, producto_id in enumerate(productos_bonificados_rango):
             if (producto_id and 
@@ -897,51 +707,24 @@ def procesar_rangos_cantidad_ilimitados(request, promocion):
                 )
                 productos_rango_guardados += 1
                 productos_guardados_total += 1
-                
-                print(f"   ✅ Producto bonificado {productos_rango_guardados} guardado:")
-                print(f"      BD ID: {producto_bonif.pro_boni_id}")
-                print(f"      Artículo: {producto_id}")
-                print(f"      Cantidad: {cantidades_bonificadas_rango[j]}")
-                print(f"      Asociado al rango BD ID: {rango.rango_id}")
-        
-        print(f"   📦 RESUMEN RANGO {posicion_real + 1}: {productos_rango_guardados} productos bonificados guardados")
-    
-    print(f"\n   🎯 === RESUMEN FINAL CANTIDAD ===")
-    print(f"   📊 Total rangos guardados: {rangos_guardados}")
-    print(f"   🎁 Total productos bonificados: {productos_guardados_total}")
 
 
-def procesar_rangos_monto_ilimitados(request, promocion):
-    """
-    Procesa rangos de monto sin límite - VERSIÓN CORREGIDA
-    """
-    print("   💰 Procesando rangos de monto ilimitados...")
-    
+def procesar_rangos_monto_ilimitados(request, promocion):    
     montos_min = request.POST.getlist('monto_minimo[]')
     montos_max = request.POST.getlist('monto_maximo[]')
     descuentos = request.POST.getlist('porcentaje_descuento_monto[]')
     
-    # Filtrar solo rangos con datos válidos
     rangos_validos = [(i, mm) for i, mm in enumerate(montos_min) if mm and mm.strip()]
     total_rangos = len(rangos_validos)
-    
-    print(f"   📊 Rangos de monto válidos encontrados: {total_rangos}")
-    
+        
     rangos_guardados = 0
     productos_guardados_total = 0
     
     # PROCESAR TODOS LOS RANGOS DINÁMICAMENTE
-    for posicion_real, (indice_original, monto_min) in enumerate(rangos_validos):
-        print(f"\n   💰 === PROCESANDO RANGO MONTO {posicion_real + 1} (índice frontend: {indice_original}) ===")
-        
+    for posicion_real, (indice_original, monto_min) in enumerate(rangos_validos):        
         # Obtener datos del rango
         monto_max = montos_max[indice_original] if indice_original < len(montos_max) and montos_max[indice_original] else None
         descuento = descuentos[indice_original] if indice_original < len(descuentos) and descuentos[indice_original] else None
-        
-        print(f"   📊 Datos del rango:")
-        print(f"      Monto mínimo: S/{monto_min}")
-        print(f"      Monto máximo: S/{monto_max or 'Sin límite'}")
-        print(f"      Descuento: {descuento or '0'}%")
         
         # Crear el rango en la base de datos
         rango = Rango.objects.create(
@@ -953,7 +736,6 @@ def procesar_rangos_monto_ilimitados(request, promocion):
         )
         
         rangos_guardados += 1
-        print(f"   ✅ Rango guardado en BD con ID: {rango.rango_id}")
         
         # PROCESAR PRODUCTOS BONIFICADOS ESPECÍFICOS DE ESTE RANGO
         productos_rango_key = f'producto_bonificado_monto_{indice_original}[]'
@@ -961,12 +743,6 @@ def procesar_rangos_monto_ilimitados(request, promocion):
         
         productos_bonificados_rango = request.POST.getlist(productos_rango_key)
         cantidades_bonificadas_rango = request.POST.getlist(cantidades_rango_key)
-        
-        print(f"   🔍 Buscando productos bonificados para rango:")
-        print(f"      Clave productos: {productos_rango_key}")
-        print(f"      Clave cantidades: {cantidades_rango_key}")
-        print(f"      Productos encontrados: {len(productos_bonificados_rango)}")
-        print(f"      Cantidades encontradas: {len(cantidades_bonificadas_rango)}")
         
         # Guardar productos bonificados específicos de este rango
         productos_rango_guardados = 0
@@ -983,52 +759,103 @@ def procesar_rangos_monto_ilimitados(request, promocion):
                 productos_rango_guardados += 1
                 productos_guardados_total += 1
                 
-                print(f"   ✅ Producto bonificado {productos_rango_guardados} guardado:")
-                print(f"      BD ID: {producto_bonif.pro_boni_id}")
-                print(f"      Artículo: {producto_id}")
-                print(f"      Cantidad: {cantidades_bonificadas_rango[j]}")
-                print(f"      Asociado al rango BD ID: {rango.rango_id}")
-        
-        print(f"   📦 RESUMEN RANGO {posicion_real + 1}: {productos_rango_guardados} productos bonificados guardados")
-    
-    print(f"\n   💰 === RESUMEN FINAL MONTO ===")
-    print(f"   📊 Total rangos guardados: {rangos_guardados}")
-    print(f"   🎁 Total productos bonificados: {productos_guardados_total}")
 
-
-def verificar_guardado_productos_bonificados_completo(promocion):
-    """
-    Función para verificar que los productos bonificados se guardaron correctamente - VERSIÓN COMPLETA
-    """
-    print(f"\n🔍 === VERIFICACIÓN POST-GUARDADO COMPLETA ===")
-    print(f"📋 Promoción: {promocion.descripcion} (ID: {promocion.promocion_id})")
+# F cuasa la cantidad se realiza por medio de insomnia
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_crear_promocion_completa(request):
     
-    # Verificar rangos
-    rangos = Rango.objects.filter(promocion=promocion).order_by('tipo_rango', 'minimo')
-    print(f"📊 Rangos encontrados en BD: {rangos.count()}")
-    
-    total_productos_bonificados = 0
-    
-    for i, rango in enumerate(rangos):
-        print(f"\n   🎯 Rango {i+1} (BD ID: {rango.rango_id}):")
-        print(f"      Tipo: {rango.tipo_rango}")
-        print(f"      Mínimo: {rango.minimo}")
-        print(f"      Máximo: {rango.maximo or 'Sin límite'}")
-        print(f"      Descuento: {rango.descuento or 0}%")
+    try:
+        data = json.loads(request.body)
         
-        # Verificar productos bonificados de este rango
-        productos_bonif = ProductoBonificadoRango.objects.filter(rango=rango)
-        print(f"      📦 Productos bonificados: {productos_bonif.count()}")
+        # Validar campos requeridos
+        campos_requeridos = ['descripcion', 'empresa', 'sucursal', 'canal_cliente', 'fecha_inicio', 'fecha_fin']
+        for campo in campos_requeridos:
+            if campo not in data:
+                return JsonResponse({'error': f'Campo requerido: {campo}'}, status=400)
         
-        for j, prod_bonif in enumerate(productos_bonif):
-            print(f"         {j+1}. BD ID: {prod_bonif.pro_boni_id}")
-            print(f"            Artículo: {prod_bonif.articulo.codigo} - {prod_bonif.articulo.descripcion}")
-            print(f"            Cantidad: {prod_bonif.cantidad}")
-            print(f"            Rango asociado: {prod_bonif.rango.rango_id}")
-            total_productos_bonificados += 1
-    
-    print(f"\n✅ RESUMEN FINAL:")
-    print(f"   📊 Total rangos: {rangos.count()}")
-    print(f"   📦 Total productos bonificados: {total_productos_bonificados}")
-    print(f"   ♾️ Escalable: {'Sí' if promocion.escalable else 'No'}")
-    print(f"=== FIN VERIFICACIÓN COMPLETA ===\n")
+        with transaction.atomic():
+            print(f"\n CREANDO PROMOCIÓN VÍA API ")
+            
+            promocion = Promocion.objects.create(
+                descripcion=data['descripcion'],
+                empresa_id=data['empresa'],
+                sucursal_id=data['sucursal'],
+                canal_cliente_id=data['canal_cliente'],
+                fecha_inicio=data['fecha_inicio'],
+                fecha_fin=data['fecha_fin'],
+                grupo_proveedor_id=data.get('grupo_proveedor_id'),
+                linea_articulo_id=data.get('linea_articulo_id'),
+                monto_minimo=data.get('monto_minimo'),
+                cantidad_minima=data.get('cantidad_minima'),  # ← NUEVO CAMPO
+                escalable=data.get('escalable', False),
+                estado=data.get('estado', 1)
+            )
+                        
+            if 'productos_verificacion' in data and data['productos_verificacion']:
+                for producto_id in data['productos_verificacion']:
+                    VerificacionProducto.objects.create(
+                        promocion=promocion,
+                        articulo_id=producto_id
+                    )
+                    print(f"   ✅ Producto verificación: {producto_id}")
+            
+            if 'rangos' in data and data['rangos']:
+                for rango_data in data['rangos']:
+                    rango = Rango.objects.create(
+                        promocion=promocion,
+                        tipo_rango=rango_data['tipo'],  # 'cantidad' o 'monto'
+                        minimo=rango_data['minimo'],
+                        maximo=rango_data.get('maximo'),
+                        descuento=rango_data.get('descuento')
+                    )
+                                        
+                    if 'productos_bonificados' in rango_data:
+                        for prod_bonif in rango_data['productos_bonificados']:
+                            ProductoBonificadoRango.objects.create(
+                                rango=rango,
+                                articulo_id=prod_bonif['articulo_id'],
+                                cantidad=prod_bonif['cantidad']
+                            )
+                            print(f"      🎁 Producto bonificado rango: {prod_bonif['cantidad']} x {prod_bonif['articulo_id']}")
+            
+            if 'beneficios' in data and data['beneficios']:
+                for beneficio_data in data['beneficios']:
+                    beneficio = Beneficio.objects.create(
+                        promocion=promocion,
+                        tipo_beneficio=beneficio_data['tipo'],  # 'bonificacion', 'descuento', 'ambos'
+                        descuento=beneficio_data.get('descuento')
+                    )
+                                        
+                    # Crear productos beneficiados generales
+                    if 'productos_bonificados' in beneficio_data:
+                        for prod_benef in beneficio_data['productos_bonificados']:
+                            ProductosBeneficios.objects.create(
+                                beneficio=beneficio,
+                                articulo_id=prod_benef['articulo_id'],
+                                cantidad=prod_benef['cantidad']
+                            )
+                        
+            return JsonResponse({
+                'success': True,
+                'promocion_id': promocion.promocion_id,
+                'mensaje': f'Promoción completa "{promocion.descripcion}" creada exitosamente',
+                'data': {
+                    'id': promocion.promocion_id,
+                    'descripcion': promocion.descripcion,
+                    'fecha_inicio': promocion.fecha_inicio,
+                    'fecha_fin': promocion.fecha_fin,
+                    'cantidad_minima': promocion.cantidad_minima,
+                    'escalable': promocion.escalable,
+                    'rangos_creados': len(data.get('rangos', [])),
+                    'beneficios_creados': len(data.get('beneficios', []))
+                }
+            }, status=201)
+            
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'JSON inválido'}, status=400)
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'error': str(e)}, status=500)
