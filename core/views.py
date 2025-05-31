@@ -1,9 +1,16 @@
 from datetime import timezone
+from decimal import Decimal
 import uuid
 from django.shortcuts import render, redirect
-from .models import Carrito, DetalleCarrito, Usuario, Rol
+from .models import (
+    # Modelos actualizados según nueva estructura
+    ProductosBeneficios, BonificacionAplicada, Carrito, Cliente, 
+    DescuentoAplicado, DetalleCarrito, DetallePedido, GrupoProveedor, 
+    LineaArticulo, Pedido, Promocion, Rango, ProductoBonificadoRango,
+    Beneficio, StockSucursal, Usuario, Rol, VerificacionProducto
+)
 from django.contrib import messages
-from .forms import UsuarioForm
+from .forms import PromocionForm, UsuarioForm
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.template.loader import render_to_string
@@ -15,7 +22,9 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.utils import timezone
 
-
+# Necesario para realizar las promociones
+from core.promociones import evaluar_promociones
+from core.models import CanalCliente
 
 
 def home(request):
@@ -94,32 +103,6 @@ def agregar_producto(request, articulo_id):
 
     return redirect(request.META.get('HTTP_REFERER', 'home'))
 
-def vendedores_list(request):
-    try:
-        rol_vendedor = Rol.objects.get(nombre='Vendedor')  # Ajusta el nombre si es distinto
-        vendedores = Usuario.objects.filter(perfil=rol_vendedor)
-    except Rol.DoesNotExist:
-        vendedores = Usuario.objects.none()
-
-    return render(request, 'core/vendedores/list.html', {'vendedores': vendedores})
-
-
-def usuario_create(request):
-    if request.method == 'POST':
-        form = UsuarioForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Usuario registrado correctamente')
-            return redirect('usuarios_list')  # Cambia por la URL que quieras
-    else:
-        form = UsuarioForm()
-    return render(request, 'core/usuarios/form.html', {'form': form})
-
-
-def usuarios_list(request):
-    usuarios = Usuario.objects.all()
-    return render(request, 'core/usuarios/list.html', {'usuarios': usuarios})
-
 ###############ARTICULOS###############
 
 # @login_required
@@ -184,25 +167,19 @@ def articulo_detail(request, articulo_id):
 def articulo_edit(request, articulo_id):
     """Vista para editar un artículo existente"""
     articulo = get_object_or_404(Articulo, articulo_id=articulo_id)
-    #lista_precio = get_object_or_404(ListaPrecio, articulo=articulo)
 
     if request.method == "POST":
         form = ArticuloForm(request.POST, instance=articulo)
-        #precio_form = ListaPrecioForm(request.POST, instance=lista_precio)
 
-        #if form.is_valid() and precio_form.is_valid():
-        #    form.save()
-        #    precio_form.save()
-
-        #    messages.success(request, "Artículo actualizado correctamente.")
-        #    return redirect("articulo_detail", articulo_id=articulo.articulo_id)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Artículo actualizado correctamente.")
+            return redirect("articulo_detail", articulo_id=articulo.articulo_id)
     else:
         form = ArticuloForm(instance=articulo)
-        #precio_form = ListaPrecioForm(instance=lista_precio)
 
     context = {
         "form": form,
-        #"precio_form": precio_form,
     }
     return render(request, "core/articulos/form.html", context)
 
@@ -211,20 +188,14 @@ def articulo_create(request):
     """Vista para crear un nuevo artículo"""
     if request.method == "POST":
         form = ArticuloForm(request.POST)
-        #precio_form = ListaPrecioForm(request.POST)
 
-        if form.is_valid() and precio_form.is_valid():
-
+        if form.is_valid():
             try:
                 # Generar ID para el artículo
                 articulo = form.save(commit=False)
                 articulo.articulo_id = uuid.uuid4()
                 articulo.save()
 
-                # Guardar precios
-                lista_precio = precio_form.save(commit=False)
-                lista_precio.articulo = articulo
-                lista_precio.save()
                 messages.success(request, f'¡Artículo "{articulo.descripcion}"creado correctamente!')
 
                 return redirect("articulo_detail", articulo_id=articulo.articulo_id)
@@ -235,11 +206,9 @@ def articulo_create(request):
             messages.warning(request, 'Por favor corrija los errores en el formulario.')  
     else:
         form = ArticuloForm()
-        #precio_form = ListaPrecioForm()
 
     context = {
         "form": form,
-        #"precio_form": precio_form,
     }
     return render(request, "core/articulos/form.html", context)
 
@@ -261,21 +230,31 @@ def articulo_delete(request, articulo_id):
 
 #################################
 
+@login_required
+def eliminar_detalle_carrito(request, detalle_id):
+    detalle = get_object_or_404(DetalleCarrito, pk=detalle_id)
 
-#Desde aqui inicia los cambios de la vista de los articulos
+    # Validar que el detalle sea del carrito del usuario actual
+    if detalle.carrito.usuario == request.user:
+        detalle.delete()
+
+    return redirect('vista_carrito')  # Redirige al carrito actualizado
 
 
 def vista_carrito(request):
     usuario = request.user
-
-    # Buscar el carrito activo del usuario, si no hay, carrito es None
     carrito = Carrito.objects.filter(usuario=usuario).order_by('-fecha_creacion').first()
 
     articulos_carrito = []
+    promociones_aplicadas = []
+    beneficios_promociones = []
+    descuentos_aplicados = []
+    total_descuento = Decimal('0')
 
     if carrito:
         detalles = DetalleCarrito.objects.filter(carrito=carrito).select_related('articulo', 'articulo__sucursal')
 
+        # Construir lista de artículos del carrito
         for detalle in detalles:
             articulo = detalle.articulo
             articulos_carrito.append({
@@ -287,17 +266,116 @@ def vista_carrito(request):
                 'precio': articulo.precio,
                 'total': articulo.precio * detalle.cantidad,
             })
-    
-    total_venta = sum(item['total'] for item in articulos_carrito)
+
+        # Obtener cliente asociado
+        cliente = Cliente.objects.filter(usuario=usuario).first()
+
+        # Evaluar promociones usando la nueva función
+        try:
+            print(f"\n🛒 === EVALUANDO PROMOCIONES PARA CARRITO ===")
+            print(f"👤 Usuario: {usuario.username}")
+            print(f"🎯 Cliente: {cliente}")
+            print(f"🏢 Empresa: {usuario.empresa}")
+            print(f"🏪 Sucursal: {usuario.sucursal}")
+            
+            beneficios = evaluar_promociones(
+                carrito_detalle=detalles,
+                cliente=cliente,
+                empresa=usuario.empresa,
+                sucursal=usuario.sucursal
+            )
+
+            # Procesar promociones aplicadas
+            promociones_aplicadas = beneficios.get('promociones_aplicadas', [])
+            print(f"🎉 Promociones aplicadas: {len(promociones_aplicadas)}")
+            
+            # ✅ PROCESAR BONIFICACIONES CON INFORMACIÓN DE ESCALABILIDAD
+            for bonificacion in beneficios.get('bonificaciones', []):
+                beneficios_promociones.append({
+                    'promocion': bonificacion['promocion'].descripcion,
+                    'codigo': bonificacion['articulo'].codigo,
+                    'descripcion': bonificacion['articulo'].descripcion,
+                    'cantidad': bonificacion['cantidad'],
+                    'valor': 0,  # Productos gratis
+                    'tipo': 'bonificacion',
+                    'escalable': bonificacion.get('escalable', False),
+                    'veces_aplicable': bonificacion.get('veces_aplicable', 1)
+                })
+                
+                print(f"🎁 Bonificación procesada: {bonificacion['cantidad']} x {bonificacion['articulo'].descripcion}")
+
+            # ✅ PROCESAR DESCUENTOS CON INFORMACIÓN DE ESCALABILIDAD
+            for descuento in beneficios.get('descuentos', []):
+                # Calcular monto de descuento si no está calculado
+                if descuento.get('monto_descuento', 0) == 0 and descuento.get('porcentaje', 0) > 0:
+                    if descuento.get('tipo') == 'general':
+                        # Descuento general sobre el total
+                        total_carrito = sum(item['total'] for item in articulos_carrito)
+                        monto_desc = total_carrito * (Decimal(str(descuento['porcentaje'])) / 100)
+                    elif descuento.get('tipo') == 'porcentaje_producto' and descuento.get('articulo'):
+                        # Descuento específico sobre un producto
+                        for item in articulos_carrito:
+                            if item['articulo'].articulo_id == descuento['articulo'].articulo_id:
+                                monto_desc = item['total'] * (Decimal(str(descuento['porcentaje'])) / 100)
+                                break
+                        else:
+                            monto_desc = 0
+                    else:
+                        monto_desc = Decimal(str(descuento.get('monto_descuento', 0)))
+                else:
+                    monto_desc = Decimal(str(descuento.get('monto_descuento', 0)))
+
+                descuentos_aplicados.append({
+                    'promocion': descuento['promocion'].descripcion,
+                    'tipo': descuento.get('tipo', 'general'),
+                    'porcentaje': descuento.get('porcentaje', 0),
+                    'monto_descuento': float(monto_desc),
+                    'descripcion': f"Descuento {descuento.get('porcentaje', 0)}% - {descuento['promocion'].descripcion}",
+                    'escalable': descuento.get('escalable', False),
+                    'veces_aplicable': descuento.get('veces_aplicable', 1)
+                })
+                
+                total_descuento += monto_desc
+                print(f"💰 Descuento procesado: {descuento.get('porcentaje', 0)}% = S/{float(monto_desc)}")
+
+            # Mostrar errores si los hay (para debugging)
+            if beneficios.get('errores'):
+                for error in beneficios['errores']:
+                    messages.warning(request, f"Error en promociones: {error}")
+                    print(f"⚠️ Error: {error}")
+
+        except Exception as e:
+            error_msg = f"Error al evaluar promociones: {str(e)}"
+            messages.error(request, error_msg)
+            print(f"🚨 {error_msg}")
+            import traceback
+            traceback.print_exc()
+
+    # Calcular totales
+    subtotal = sum(item['total'] for item in articulos_carrito)
+    total_venta = subtotal - total_descuento
+
+    # ✅ AGREGAR INFORMACIÓN DE DEBUG PARA ESCALABILIDAD
+    print(f"\n🛒 === RESUMEN FINAL DEL CARRITO ===")
+    print(f"   📦 Productos: {len(articulos_carrito)}")
+    print(f"   🎉 Promociones: {len(promociones_aplicadas)}")
+    print(f"   🎁 Bonificaciones: {len(beneficios_promociones)}")
+    for beneficio in beneficios_promociones:
+        escalable_info = f" (Escalable {beneficio['veces_aplicable']}x)" if beneficio['escalable'] else ""
+        print(f"      - {beneficio['descripcion']}: {beneficio['cantidad']} unidades{escalable_info}")
+    print(f"   💰 Descuentos: {len(descuentos_aplicados)}")
+    for descuento in descuentos_aplicados:
+        escalable_info = f" (Escalable {descuento['veces_aplicable']}x)" if descuento['escalable'] else ""
+        print(f"      - {descuento['descripcion']}: S/{descuento['monto_descuento']}{escalable_info}")
+    print(f"   💵 Subtotal: S/{subtotal}")
+    print(f"   🔻 Total descuentos: S/{total_descuento}")
+    print(f"   💲 TOTAL FINAL: S/{total_venta}")
+    print(f"=== FIN RESUMEN ===\n")
 
     return render(request, 'core/carrito/vistacarrito.html', {
         'articulos_carrito': articulos_carrito,
         'usuario_nombre': usuario.username,
+        'subtotal': subtotal,
+        'total_descuento': total_descuento,
         'total_venta': total_venta,
     })
-
-def eliminar_detalle_carrito(request, detalle_id):
-    detalle = get_object_or_404(DetalleCarrito, detalle_carrito_id=detalle_id)
-    if detalle.carrito.usuario == request.user:
-        detalle.delete()
-    return redirect('cart_detail')
