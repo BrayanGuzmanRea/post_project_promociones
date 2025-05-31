@@ -20,22 +20,10 @@
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="articulosDropdown">
                         <li><a class="dropdown-item" href="{% url 'articulos_list' %}">Lista de Artículos</a></li>
-                        <li><a class="dropdown-item" href="{% url 'articulo_create' %}">Nuevo Artículo</a></li>
+                        <li><a class="dropdown-item" href="#">Nuevo Artículo</a></li>
                     </ul>
                 </li>
 
-                <!-- Dropdown para Usuarios 
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="usuariosDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-users me-1"></i>Usuarios
-                    </a>
-                    <ul class="dropdown-menu" aria-labelledby="usuariosDropdown">
-                        <li><a class="dropdown-item" href="#">Lista de Usuarios</a></li>
-                        <li><a class="dropdown-item" href="#">Nuevo Usuario</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="#">Perfiles</a></li>
-                    </ul>
-                </li>-->
                 {% if user.is_authenticated and user.id == 1 %}
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="navbarPromos" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -43,9 +31,6 @@
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="navbarPromos">
                         <li><a class="dropdown-item" href="{% url 'registrar_promocion' %}">Registrar Promos</a></li>
-                        <li><a class="dropdown-item" href="#">Listar Promos</a></li>
-                        <li><a class="dropdown-item" href="#">Editar Promos</a></li>
-                        <li><a class="dropdown-item" href="#">Inhabilitar Promos</a></li>
                     </ul>
                 </li>
                 <li class="nav-item">
@@ -54,6 +39,8 @@
                     </a>
                 </li>
 
+
+                </li>
                 {% endif %}
 
             </ul>
@@ -88,6 +75,9 @@
                             <li><a class="dropdown-item" href="{% url 'mis_pedidos' %}"><i class="fas fa-box me-2"></i>Mis Pedidos</a></li>
                             {% endif %}
                             <li><hr class="dropdown-divider"></li>
+                            {% if user.is_authenticated and user.id != 1 %}
+                            <li><a class="dropdown-item" href="{% url 'mis_pedidos' %}"><i class="fas fa-box me-2"></i>Mis Pedidos</a></li>
+                            {% endif %}
                             <li>
                                 <form method="post" action="{% url 'logout' %}">
                                     {% csrf_token %}

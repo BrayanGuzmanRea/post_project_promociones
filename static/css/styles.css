@@ -33,29 +33,41 @@ main {
 
 /* Cards y contenedores */
 .card {
-    border-radius: 0.5rem;
-    border: none;
+    border-radius: 1.5rem;
+    border: 2px solid #5b05b7;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
 }
 
 .card-header {
     font-weight: 600;
     border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 12px 12px 0 0;
 }
 
 /* Botones */
 .btn {
-    border-radius: 0.4rem;
+    border-radius: 8px;
     font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
 .btn-block {
     width: 100%;
+}
+
+.btn-sm {
+    font-size: 0.75rem;
 }
 
 /* Fondos para los footers de tarjetas */
@@ -75,6 +87,10 @@ main {
     background-color: var(--danger-dark);
 }
 
+.bg-gradient-primary {
+    background: linear-gradient(45deg, #007bff, #0056b3);
+}
+
 /* Animación de hover para los enlaces */
 a {
     transition: all 0.3s ease;
@@ -90,77 +106,15 @@ a {
 .table th {
     background-color: #f8f9fa;
     border-top: none;
+    font-weight: 600;
+}
+
+.table-responsive {
+    max-height: 500px;
+    overflow-y: auto;
 }
 
 /* Formularios */
-.form-control:focus {
-    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
-    border-color: #86b7fe;
-}
-
-/* Paginación */
-.page-item.active .page-link {
-    background-color: var(--primary-dark);
-    border-color: var(--primary-dark);
-}
-
-/* Adaptaciones responsivas */
-@media (max-width: 768px) {
-    .card-body {
-        padding: 1rem;
-    }
-}
-
-
-/* ---------------------------------------------------- */
-/* Estilo para el card de empresas primera vista */
-/* ---------------------------------------------------- */
-
-.card {
-  border-radius: 1.5rem;
-  border: 2px solid #5b05b7;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-}
-/* ---------------------------------------------------- */
-
-.required::after {
-    content: " *";
-    color: red;
-}
-
-.card {
-    border-radius: 12px;
-    transition: all 0.3s ease;
-}
-
-.card-header {
-    border-radius: 12px 12px 0 0;
-}
-
-.bg-gradient-primary {
-    background: linear-gradient(45deg, #007bff, #0056b3);
-}
-
-.filtro-option {
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
-
-.filtro-option:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-
-.filtro-option .form-check-input:checked ~ .form-check-label {
-    color: #007bff;
-    font-weight: bold;
-}
-
 .form-control, .form-select {
     border-radius: 8px;
     border: 2px solid #e9ecef;
@@ -172,35 +126,92 @@ a {
     box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
 }
 
-.btn {
-    border-radius: 8px;
-    font-weight: 500;
-    transition: all 0.3s ease;
+.form-control:disabled, .form-select:disabled {
+    background-color: #f8f9fa !important;
+    opacity: 0.65;
 }
 
-.btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+.form-control-sm, .form-select-sm {
+    font-size: 0.75rem;
 }
 
+/* Elementos requeridos */
+.required::after {
+    content: " *";
+    color: red;
+}
+
+/* Paginación */
+.page-item.active .page-link {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+}
+
+/* Alertas */
 .alert {
     border-radius: 10px;
     border-left: 4px solid;
 }
 
 .alert-purple {
-    background-color: #f8f4ff;
-    border-color: #6f42c1;
     color: #6f42c1;
+    background-color: #f8f4ff;
+    border-color: #d1c7f0;
+}
+
+/* Estilos específicos para promociones */
+.card-promocion-escalable-disabled {
+    opacity: 0.5;
+    background-color: #f8f9fa !important;
+}
+
+.seccion-deshabilitada {
+    opacity: 0.6 !important;
+    pointer-events: none !important;
+    position: relative;
+}
+
+.seccion-deshabilitada::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(248, 249, 250, 0.7);
+    z-index: 1;
+}
+
+.seccion-deshabilitada .card-header {
+    background-color: #e9ecef !important;
+    color: #6c757d !important;
+}
+
+.filtro-option {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.filtro-option:hover {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transform: translateY(-1px);
+}
+
+.filtro-option .form-check-input:checked ~ .form-check-label {
+    color: #007bff;
+    font-weight: bold;
+}
+
+.producto-bonificado-item {
+    border: 1px solid #e3e6f0;
+    border-radius: 0.35rem;
+    padding: 0.5rem;
+    background-color: #f8f9fa;
+    margin-bottom: 0.5rem;
 }
 
 .configuracion-filtro, .condiciones-container, .beneficios-container {
     transition: all 0.3s ease;
-}
-
-.table th {
-    font-weight: 600;
-    background-color: #f8f9fa;
 }
 
 .ejemplo-caso {
@@ -212,6 +223,7 @@ a {
     box-shadow: 0 1rem 3rem rgba(0,0,0,0.175);
 }
 
+/* Adaptaciones responsivas */
 @media (max-width: 768px) {
     .container {
         padding: 0 10px;
@@ -248,4 +260,3 @@ a {
 .beneficios-container:not(.d-none) {
     animation: slideDown 0.3s ease;
 }
-

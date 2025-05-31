@@ -1,7 +1,5 @@
 // static/js/jvPromos.js - VERSIÓN COMPLETA CON RANGOS ILIMITADOS Y CONDICIONES DE GUARDADO
-document.addEventListener('DOMContentLoaded', function () {
-    console.log('🚀 jvPromos.js cargado correctamente - VERSIÓN RANGOS ILIMITADOS');
-    
+document.addEventListener('DOMContentLoaded', function () {    
     // Variables globales
     let articulosDisponibles = [];
     let contadorRangosCantidad = 1;
@@ -27,7 +25,6 @@ document.addEventListener('DOMContentLoaded', function () {
     init();
 
     function init() {
-        console.log('⚡ Inicializando formulario...');
         configurarFechas();
         deshabilitarElementosDependientes();
         configurarEventListeners();
@@ -62,9 +59,7 @@ document.addEventListener('DOMContentLoaded', function () {
         agregarClaseDeshabilitada(seccionBeneficios);
     }
 
-    function configurarEventListeners() {
-        console.log('🔗 Configurando event listeners...');
-        
+    function configurarEventListeners() {        
         // === INFORMACIÓN BÁSICA ===
         [empresaSelect, sucursalSelect, document.getElementById('id_canal_cliente'), 
          fechaInicioInput, fechaFinInput].forEach(elemento => {
@@ -76,7 +71,6 @@ document.addEventListener('DOMContentLoaded', function () {
         // Cambios en empresa
         if (empresaSelect) {
             empresaSelect.addEventListener('change', function() {
-                console.log('🏢 Empresa seleccionada:', this.value);
                 cargarSucursales(this.value);
                 cargarMarcas(this.value);
                 resetSelect(lineaSelect, 'Seleccione una línea');
@@ -88,7 +82,6 @@ document.addEventListener('DOMContentLoaded', function () {
         // Cambios en sucursal
         if (sucursalSelect) {
             sucursalSelect.addEventListener('change', function() {
-                console.log('🏪 Sucursal seleccionada:', this.value);
                 cargarArticulos(this.value);
                 evaluarEstadoFormulario();
             });
@@ -97,7 +90,6 @@ document.addEventListener('DOMContentLoaded', function () {
         // Cambios en marca
         if (marcaSelect) {
             marcaSelect.addEventListener('change', function() {
-                console.log('🏷️ Marca seleccionada:', this.value);
                 cargarLineasPorMarca(this.value);
                 if (montoMinimoProductos) montoMinimoProductos.disabled = true;
                 evaluarEstadoFormulario();
@@ -107,7 +99,6 @@ document.addEventListener('DOMContentLoaded', function () {
         // Cambios en línea
         if (lineaSelect) {
             lineaSelect.addEventListener('change', function() {
-                console.log('📋 Línea seleccionada:', this.value);
                 const tipoFiltro = document.querySelector('input[name="tipo_filtro"]:checked')?.value;
                 if (tipoFiltro === 'linea_marca' && this.value) {
                     if (montoMinimoProductos) {
@@ -154,17 +145,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // === EVALUACIÓN GENERAL DEL ESTADO ===
-    function evaluarEstadoFormulario() {
-        console.log('🔄 Evaluando estado del formulario...');
-        
+    function evaluarEstadoFormulario() {       
         const informacionBasicaCompleta = verificarInformacionBasica();
         const configuracionProductosCompleta = verificarConfiguracionProductos();
-        
-        console.log('📋 Estado actual:', {
-            informacionBasica: informacionBasicaCompleta,
-            configuracionProductos: configuracionProductosCompleta
-        });
-
         controlarSeccionCondiciones(informacionBasicaCompleta, configuracionProductosCompleta);
         controlarSeccionBeneficios(informacionBasicaCompleta, configuracionProductosCompleta);
         controlarPromocionEscalable();
@@ -222,8 +205,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 ocultarTodasLasCondiciones();
             }
         }
-
-        console.log(`🎯 Condiciones: ${habilitarCondiciones ? 'HABILITADAS' : 'DESHABILITADAS'}`);
     }
 
     function controlarSeccionBeneficios(informacionBasicaCompleta, configuracionProductosCompleta) {
@@ -256,8 +237,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 ocultarTodosLosBeneficios();
             }
         }
-
-        console.log(`🎁 Beneficios: ${habilitarBeneficios ? 'HABILITADOS' : 'DESHABILITADOS'}`);
     }
 
     function controlarPromocionEscalable() {
@@ -326,9 +305,6 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!habilitarEscalable) {
             promocionEscalable.checked = false;
         }
-
-        console.log(`♾️ Promoción Escalable: ${habilitarEscalable ? 'HABILITADA' : 'DESHABILITADA'}`);
-        console.log(`   📝 Razón: ${razonDeshabilitacion}`);
     }
 
     function verificarCantidadMinimaConProductosBonificados() {
@@ -361,9 +337,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // === CARGA DE DATOS ===
-    async function cargarSucursales(empresaId) {
-        console.log('📡 Cargando sucursales para empresa:', empresaId);
-        
+    async function cargarSucursales(empresaId) {        
         if (!empresaId) {
             resetSelect(sucursalSelect, 'Seleccione una sucursal');
             return;
@@ -371,10 +345,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         try {
             const response = await fetch(`/core/api/sucursales/?empresa_id=${empresaId}`);
-            const sucursales = await response.json();
-            
-            console.log('✅ Sucursales cargadas:', sucursales.length);
-            
+            const sucursales = await response.json();            
             sucursalSelect.innerHTML = '<option value="">Seleccione una sucursal</option>';
             sucursales.forEach(sucursal => {
                 const option = document.createElement('option');
@@ -388,9 +359,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    async function cargarMarcas(empresaId) {
-        console.log('📡 Cargando marcas para empresa:', empresaId);
-        
+    async function cargarMarcas(empresaId) {        
         if (!empresaId) {
             resetSelect(marcaSelect, 'Seleccione una marca');
             return;
@@ -398,10 +367,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         try {
             const response = await fetch(`/core/api/marcas_por_empresa/?empresa_id=${empresaId}`);
-            const marcas = await response.json();
-            
-            console.log('✅ Marcas cargadas:', marcas.length);
-            
+            const marcas = await response.json();            
             marcaSelect.innerHTML = '<option value="">Seleccione una marca</option>';
             marcas.forEach(marca => {
                 const option = document.createElement('option');
@@ -415,9 +381,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    async function cargarLineasPorMarca(marcaId) {
-        console.log('📡 Cargando líneas para marca:', marcaId);
-        
+    async function cargarLineasPorMarca(marcaId) {        
         if (!marcaId) {
             resetSelect(lineaSelect, 'Seleccione una línea');
             return;
@@ -425,10 +389,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         try {
             const response = await fetch(`/core/api/lineas_por_marca/?marca_id=${marcaId}`);
-            const lineas = await response.json();
-            
-            console.log('✅ Líneas cargadas:', lineas.length);
-            
+            const lineas = await response.json();            
             lineaSelect.innerHTML = '<option value="">Seleccione una línea</option>';
             lineas.forEach(linea => {
                 const option = document.createElement('option');
@@ -442,9 +403,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    async function cargarArticulos(sucursalId) {
-        console.log('📡 Cargando artículos para sucursal:', sucursalId);
-        
+    async function cargarArticulos(sucursalId) {        
         if (!sucursalId) {
             articulosDisponibles = [];
             actualizarSelectsProductos();
@@ -454,9 +413,7 @@ document.addEventListener('DOMContentLoaded', function () {
         try {
             const response = await fetch(`/core/api/articulos_por_sucursal/?sucursal_id=${sucursalId}`);
             articulosDisponibles = await response.json();
-            
-            console.log('✅ Artículos cargados:', articulosDisponibles.length);
-            
+                        
             actualizarSelectsProductos();
             actualizarSelectsBonificacion();
             actualizarSelectsProductoBonificado();
@@ -467,12 +424,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // === MANEJO DE FILTROS ===
-    function manejarCambioTipoFiltro() {
-        console.log('🔄 Cambiando tipo de filtro...');
-        
+    function manejarCambioTipoFiltro() {        
         const tipoSeleccionado = document.querySelector('input[name="tipo_filtro"]:checked')?.value;
-        console.log(`📊 Tipo seleccionado: ${tipoSeleccionado}`);
-        
+
         document.querySelectorAll('.configuracion-filtro').forEach(config => {
             config.classList.add('d-none');
         });
@@ -522,9 +476,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // === MANEJO DE CONDICIONES ===
-    function manejarCambioTipoCondicion() {
-        console.log('🔄 Cambiando tipo de condición...');
-        
+    function manejarCambioTipoCondicion() {        
         const tipoCondicion = tipoCondicionSelect.value;
         
         ocultarTodasLasCondiciones();
@@ -549,8 +501,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // === MANEJO DE BENEFICIOS ===
     function manejarCambioTipoBeneficio() {
-        console.log('🔄 Cambiando tipo de beneficio...');
-        
         const tipoBeneficioValue = tipoBeneficioSelect.value;
         
         ocultarTodosLosBeneficios();
@@ -588,15 +538,45 @@ document.addEventListener('DOMContentLoaded', function () {
         const container = document.getElementById('productos-condicion-container');
         if (!container) return;
 
-        container.addEventListener('click', function(e) {
+        // ❌ REMOVER event listeners previos para evitar duplicados
+        const clonedContainer = container.cloneNode(true);
+        container.parentNode.replaceChild(clonedContainer, container);
+        
+        // ✅ AGREGAR event listeners solo una vez
+        clonedContainer.addEventListener('click', function(e) {
+            // Prevenir múltiples ejecuciones
+            if (e.target.disabled) {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+
             if (e.target.classList.contains('btn-agregar-producto')) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Deshabilitar temporalmente
+                e.target.disabled = true;
+                setTimeout(() => {
+                    if (e.target) e.target.disabled = false;
+                }, 300);
+                
                 agregarProductoCondicion();
+                
             } else if (e.target.classList.contains('btn-eliminar-producto')) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                e.target.disabled = true;
+                setTimeout(() => {
+                    if (e.target && e.target.parentNode) e.target.disabled = false;
+                }, 300);
+                
                 eliminarProductoCondicion(e.target);
             }
         });
 
-        container.addEventListener('change', function(e) {
+        clonedContainer.addEventListener('change', function(e) {
             if (e.target.classList.contains('productos-condicion-select')) {
                 actualizarSelectsProductos();
                 evaluarEstadoFormulario();
@@ -674,45 +654,95 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // === RANGOS - VERSIÓN CORREGIDA PARA RANGOS ILIMITADOS ===
     function configurarRangos() {
+        // ✅ EVITAR múltiples configuraciones
+        if (window.rangosEventoConfigurado) return;
+        window.rangosEventoConfigurado = true;
+
         document.addEventListener('click', function(e) {
-            if (e.target.disabled) return;
-            
-            if (e.target.classList.contains('btn-agregar-rango-cantidad')) {
+            if (e.target.disabled) {
                 e.preventDefault();
                 e.stopPropagation();
+                return;
+            }
+            
+            let manejado = false;
+            
+            // === RANGOS CANTIDAD ===
+            if (e.target.classList.contains('btn-agregar-rango-cantidad')) {
+                e.preventDefault();
+                e.stopPropagation();                
+                e.target.disabled = true;
+                setTimeout(() => {
+                    if (e.target) e.target.disabled = false;
+                }, 400);
+                
                 agregarRangoCantidad();
+                manejado = true;
+                
             } else if (e.target.classList.contains('btn-eliminar-rango-cantidad')) {
                 e.preventDefault();
                 e.stopPropagation();
+                
+                e.target.disabled = true;
                 eliminarRangoCantidad(e.target);
+                manejado = true;
+                
             } else if (e.target.classList.contains('btn-agregar-producto-bonificado')) {
                 e.preventDefault();
                 e.stopPropagation();
                 
                 const tablaPadre = e.target.closest('table');
-                if (tablaPadre && tablaPadre.id === 'tabla-rangos-cantidad') {
+                if (tablaPadre && tablaPadre.id === 'tabla-rangos-cantidad') {                    
+                    e.target.disabled = true;
+                    setTimeout(() => {
+                        if (e.target) e.target.disabled = false;
+                    }, 300);
+                    
                     agregarProductoBonificado(e.target);
+                    manejado = true;
+                    
                 } else if (tablaPadre && tablaPadre.id === 'tabla-rangos-monto') {
+                    e.target.disabled = true;
+                    setTimeout(() => {
+                        if (e.target) e.target.disabled = false;
+                    }, 300);
+                    
                     agregarProductoBonificadoMonto(e.target);
+                    manejado = true;
                 }
                 
             } else if (e.target.classList.contains('btn-quitar-producto-bonificado')) {
                 e.preventDefault();
                 e.stopPropagation();
+                
+                e.target.disabled = true;
                 quitarProductoBonificado(e.target);
+                manejado = true;
             }
             
+            // === RANGOS MONTO ===
             else if (e.target.classList.contains('btn-agregar-rango-monto')) {
                 e.preventDefault();
-                e.stopPropagation();
+                e.stopPropagation();                
+                e.target.disabled = true;
+                setTimeout(() => {
+                    if (e.target) e.target.disabled = false;
+                }, 400);
+                
                 agregarRangoMonto();
+                manejado = true;
+                
             } else if (e.target.classList.contains('btn-eliminar-rango-monto')) {
                 e.preventDefault();
                 e.stopPropagation();
+                
+                e.target.disabled = true;
                 eliminarRangoMonto(e.target);
+                manejado = true;
             }
         });
 
+        // Event listeners para cambios e inputs
         document.addEventListener('change', function(e) {
             if (e.target.classList.contains('producto-bonificado-select')) {
                 const fila = e.target.closest('.producto-bonificado-item');
@@ -725,7 +755,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
                 controlarPromocionEscalable();
             } else if (e.target.classList.contains('cantidad-min-input') || 
-                     e.target.name === 'cantidad_max[]') {
+                    e.target.name === 'cantidad_max[]') {
                 controlarPromocionEscalable();
             }
         });
@@ -751,9 +781,7 @@ document.addEventListener('DOMContentLoaded', function () {
         
         const filasExistentes = tabla.querySelectorAll('.rango-cantidad-item');
         const nuevoIndice = filasExistentes.length;
-        
-        console.log(`✅ Agregando rango de cantidad con índice: ${nuevoIndice}`);
-        
+                
         const nuevaFila = document.createElement('tr');
         nuevaFila.className = 'rango-cantidad-item';
         nuevaFila.setAttribute('data-index', nuevoIndice);
@@ -820,8 +848,6 @@ document.addEventListener('DOMContentLoaded', function () {
             botonesAgregar.forEach(btn => btn.disabled = false);
             controlarPromocionEscalable();
         }, 300);
-        
-        console.log(`✅ Rango de cantidad agregado. Total rangos: ${contadorRangosCantidad}`);
     }
 
     function eliminarRangoCantidad(boton) {
@@ -833,17 +859,13 @@ document.addEventListener('DOMContentLoaded', function () {
         if (filas.length > 1) {
             const filaAEliminar = boton.closest('.rango-cantidad-item');
             const indiceEliminado = parseInt(filaAEliminar.getAttribute('data-index') || '0');
-            
-            console.log(`🗑️ Eliminando rango de cantidad ${indiceEliminado}`);
-            
+                        
             boton.disabled = true;
             filaAEliminar.remove();
             
             // REINDEXAR todas las filas restantes
             const filasRestantes = tabla.querySelectorAll('.rango-cantidad-item');
             filasRestantes.forEach((fila, nuevoIndice) => {
-                console.log(`🔄 Reindexando fila de ${fila.getAttribute('data-index')} a ${nuevoIndice}`);
-                
                 fila.setAttribute('data-index', nuevoIndice);
                 
                 const inputs = fila.querySelectorAll('input[data-rango-index]');
@@ -864,7 +886,6 @@ document.addEventListener('DOMContentLoaded', function () {
             });
             
             contadorRangosCantidad = filasRestantes.length;
-            console.log(`✅ Rango eliminado. Rangos restantes: ${contadorRangosCantidad}`);
             controlarPromocionEscalable();
         }
     }
@@ -878,9 +899,7 @@ document.addEventListener('DOMContentLoaded', function () {
         
         const filasExistentes = tabla.querySelectorAll('.rango-monto-item');
         const nuevoIndice = filasExistentes.length;
-        
-        console.log(`✅ Agregando rango de monto con índice: ${nuevoIndice}`);
-        
+                
         const nuevaFila = document.createElement('tr');
         nuevaFila.className = 'rango-monto-item';
         nuevaFila.setAttribute('data-index', nuevoIndice);
@@ -945,9 +964,8 @@ document.addEventListener('DOMContentLoaded', function () {
         
         setTimeout(() => {
             botonesAgregar.forEach(btn => btn.disabled = false);
-        }, 300);
+        }, 10);
         
-        console.log(`✅ Rango de monto agregado. Total rangos: ${contadorRangosMonto}`);
     }
 
     function eliminarRangoMonto(boton) {
@@ -959,16 +977,13 @@ document.addEventListener('DOMContentLoaded', function () {
         if (filas.length > 1) {
             const filaAEliminar = boton.closest('.rango-monto-item');
             const indiceEliminado = parseInt(filaAEliminar.getAttribute('data-index') || '0');
-            
-            console.log(`🗑️ Eliminando rango de monto ${indiceEliminado}`);
-            
+                        
             boton.disabled = true;
             filaAEliminar.remove();
             
             // REINDEXAR todas las filas restantes
             const filasRestantes = tabla.querySelectorAll('.rango-monto-item');
             filasRestantes.forEach((fila, nuevoIndice) => {
-                console.log(`🔄 Reindexando fila de ${fila.getAttribute('data-index')} a ${nuevoIndice}`);
                 
                 fila.setAttribute('data-index', nuevoIndice);
                 
@@ -990,7 +1005,6 @@ document.addEventListener('DOMContentLoaded', function () {
             });
             
             contadorRangosMonto = filasRestantes.length;
-            console.log(`✅ Rango eliminado. Rangos restantes: ${contadorRangosMonto}`);
         }
     }
 
@@ -998,9 +1012,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const fila = boton.closest('tr');
         const container = fila.querySelector('.productos-bonificados-container');
         const rangoIndex = fila.getAttribute('data-index') || '0';
-        
-        console.log(`🎁 Agregando producto bonificado al rango ${rangoIndex}`);
-        
+                
         boton.disabled = true;
         
         const nuevoProductoDiv = document.createElement('div');
@@ -1034,16 +1046,13 @@ document.addEventListener('DOMContentLoaded', function () {
             boton.disabled = false;
         }, 300);
         
-        console.log(`✅ Producto bonificado agregado al rango ${rangoIndex}`);
     }
 
     function agregarProductoBonificadoMonto(boton) {
         const fila = boton.closest('tr');
         const container = fila.querySelector('.productos-bonificados-container');
         const rangoIndex = fila.getAttribute('data-index') || '0';
-        
-        console.log(`🎁 Agregando producto bonificado al rango de monto ${rangoIndex}`);
-        
+                
         boton.disabled = true;
         
         const nuevoProductoDiv = document.createElement('div');
@@ -1077,7 +1086,6 @@ document.addEventListener('DOMContentLoaded', function () {
             boton.disabled = false;
         }, 300);
         
-        console.log(`✅ Producto bonificado agregado al rango de monto ${rangoIndex}`);
     }
 
     function quitarProductoBonificado(boton) {
@@ -1089,7 +1097,6 @@ document.addEventListener('DOMContentLoaded', function () {
             boton.closest('.producto-bonificado-item').remove();
             actualizarBotonesQuitarProducto(container);
             controlarPromocionEscalable();
-            console.log('✅ Producto bonificado eliminado');
         }
     }
 
@@ -1131,31 +1138,163 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // === BONIFICACIONES ===
     function configurarBonificaciones() {
+        // ✅ USAR event delegation en document - SOLO UNA VEZ
+        if (window.bonificacionesEventoConfigurado) return;
+        window.bonificacionesEventoConfigurado = true;
+        
         document.addEventListener('click', function(e) {
+            // Prevenir si está deshabilitado
+            if (e.target.disabled) {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+
+            let manejado = false;
+
+            // === BONIFICACIONES SOLO BONIFICACIÓN ===
             if (e.target.classList.contains('btn-agregar-bonificacion')) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // ✅ DESHABILITACIÓN MUY BREVE para evitar doble click
+                e.target.disabled = true;
+                
                 agregarBonificacion();
+                
+                // ✅ REHABILITAR INMEDIATAMENTE después de agregar
+                setTimeout(() => {
+                    rehabilitarTodosLosBotonesBonificacion();
+                }, 50);
+                
+                manejado = true;
+                
             } else if (e.target.classList.contains('btn-eliminar-bonificacion')) {
+                e.preventDefault();
+                e.stopPropagation();                
+                e.target.disabled = true;
                 eliminarBonificacion(e.target);
-            } else if (e.target.classList.contains('btn-agregar-bonificacion-ambos')) {
+                
+                setTimeout(() => {
+                    rehabilitarTodosLosBotonesBonificacion();
+                }, 50);
+                
+                manejado = true;
+            }
+
+            // === BONIFICACIONES AMBOS ===
+            else if (e.target.classList.contains('btn-agregar-bonificacion-ambos')) {
+                e.preventDefault();
+                e.stopPropagation();                
+                e.target.disabled = true;
+                
                 agregarBonificacionAmbos();
+                
+                setTimeout(() => {
+                    rehabilitarTodosLosBotonesAmbos();
+                }, 50);
+                
+                manejado = true;
+                
             } else if (e.target.classList.contains('btn-eliminar-bonificacion-ambos')) {
+                e.preventDefault();
+                e.stopPropagation();                
+                e.target.disabled = true;
                 eliminarBonificacionAmbos(e.target);
+                
+                setTimeout(() => {
+                    rehabilitarTodosLosBotonesAmbos();
+                }, 50);
+                
+                manejado = true;
+            }
+        });
+
+        // Event listener para cambios en selects de bonificación
+        document.addEventListener('change', function(e) {
+            if (e.target.classList.contains('select-bonificacion') || 
+                e.target.classList.contains('select-bonificacion-ambos')) {
+                actualizarSelectsBonificacionMejorada();
             }
         });
     }
 
     function agregarBonificacion() {
         const tabla = document.getElementById('tabla-bonificaciones');
-        if (!tabla) return;
+        if (!tabla) {
+            console.error('❌ Tabla bonificaciones no encontrada');
+            return;
+        }
         
         const template = tabla.querySelector('.bonificacion-item');
+        if (!template) {
+            console.error('❌ Template bonificación no encontrado');
+            return;
+        }
+        
         const nuevo = template.cloneNode(true);
         
-        nuevo.querySelector('.select-bonificacion').value = '';
-        nuevo.querySelector('input[name="cantidad_bonificada[]"]').value = '';
+        // Limpiar valores
+        const select = nuevo.querySelector('.select-bonificacion');
+        const input = nuevo.querySelector('input[name="cantidad_bonificada[]"]');
+        
+        if (select) select.value = '';
+        if (input) input.value = '';
+        
+        // ✅ ASEGURAR que los botones estén habilitados
+        const botonesEnNuevo = nuevo.querySelectorAll('button');
+        botonesEnNuevo.forEach(btn => {
+            btn.disabled = false;
+            btn.classList.remove('disabled');
+        });
         
         tabla.appendChild(nuevo);
-        actualizarSelectsBonificacion();
+        
+        // ✅ REHABILITAR TODOS los botones después de agregar
+        rehabilitarTodosLosBotonesBonificacion();
+        actualizarSelectsBonificacionMejorada();
+    }
+
+    function rehabilitarTodosLosBotonesBonificacion() {        
+        const tabla = document.getElementById('tabla-bonificaciones');
+        if (!tabla) return;
+        
+        // Rehabilitar todos los botones "+" y "x" en la tabla
+        const botones = tabla.querySelectorAll('.btn-agregar-bonificacion, .btn-eliminar-bonificacion');
+        botones.forEach((btn, index) => {
+            btn.disabled = false;
+            btn.classList.remove('disabled');
+        });
+        
+        // Gestionar visibilidad de botones eliminar
+        const filas = tabla.querySelectorAll('.bonificacion-item');
+        filas.forEach(fila => {
+            const btnEliminar = fila.querySelector('.btn-eliminar-bonificacion');
+            if (btnEliminar) {
+                btnEliminar.disabled = filas.length === 1;
+            }
+        });
+    }
+
+    function rehabilitarTodosLosBotonesAmbos() {        
+        const tabla = document.getElementById('tabla-bonificaciones-ambos');
+        if (!tabla) return;
+        
+        // Rehabilitar todos los botones "+" y "x" en la tabla
+        const botones = tabla.querySelectorAll('.btn-agregar-bonificacion-ambos, .btn-eliminar-bonificacion-ambos');
+        botones.forEach((btn, index) => {
+            btn.disabled = false;
+            btn.classList.remove('disabled');
+        });
+        
+        // Gestionar visibilidad de botones eliminar
+        const filas = tabla.querySelectorAll('.bonificacion-ambos-item');
+        filas.forEach(fila => {
+            const btnEliminar = fila.querySelector('.btn-eliminar-bonificacion-ambos');
+            if (btnEliminar) {
+                btnEliminar.disabled = filas.length === 1;
+            }
+        });
     }
 
     function eliminarBonificacion(boton) {
@@ -1165,22 +1304,49 @@ document.addEventListener('DOMContentLoaded', function () {
         const filas = tabla.querySelectorAll('.bonificacion-item');
         
         if (filas.length > 1) {
-            boton.closest('.bonificacion-item').remove();
+            const filaAEliminar = boton.closest('.bonificacion-item');
+            filaAEliminar.remove();
+            // Actualizar selects después de eliminar
+            actualizarSelectsBonificacionMejorada();
+        } else {
+            console.log('No se puede eliminar la última bonificación aqui ando fallando especial');
         }
     }
 
     function agregarBonificacionAmbos() {
         const tabla = document.getElementById('tabla-bonificaciones-ambos');
-        if (!tabla) return;
+        if (!tabla) {
+            console.error('❌ Tabla bonificaciones ambos no encontrada');
+            return;
+        }
         
         const template = tabla.querySelector('.bonificacion-ambos-item');
+        if (!template) {
+            console.error('❌ Template bonificación ambos no encontrado');
+            return;
+        }
+        
         const nuevo = template.cloneNode(true);
         
-        nuevo.querySelector('.select-bonificacion-ambos').value = '';
-        nuevo.querySelector('input[name="cantidad_bonificada_ambos[]"]').value = '';
+        // Limpiar valores
+        const select = nuevo.querySelector('.select-bonificacion-ambos');
+        const input = nuevo.querySelector('input[name="cantidad_bonificada_ambos[]"]');
+        
+        if (select) select.value = '';
+        if (input) input.value = '';
+        
+        // ✅ ASEGURAR que los botones estén habilitados
+        const botonesEnNuevo = nuevo.querySelectorAll('button');
+        botonesEnNuevo.forEach(btn => {
+            btn.disabled = false;
+            btn.classList.remove('disabled');
+        });
         
         tabla.appendChild(nuevo);
-        actualizarSelectsBonificacion();
+        
+        // ✅ REHABILITAR TODOS los botones después de agregar
+        rehabilitarTodosLosBotonesAmbos();
+        actualizarSelectsBonificacionMejorada();
     }
 
     function eliminarBonificacionAmbos(boton) {
@@ -1190,27 +1356,70 @@ document.addEventListener('DOMContentLoaded', function () {
         const filas = tabla.querySelectorAll('.bonificacion-ambos-item');
         
         if (filas.length > 1) {
-            boton.closest('.bonificacion-ambos-item').remove();
+            const filaAEliminar = boton.closest('.bonificacion-ambos-item');
+            filaAEliminar.remove();            
+            // Actualizar selects después de eliminar
+            actualizarSelectsBonificacionMejorada();
+        } else {
+            console.log('No se puede eliminar la última bonificación aqui ando fallando especial');
         }
     }
 
-    function actualizarSelectsBonificacion() {
-        const selects = document.querySelectorAll('.select-bonificacion, .select-bonificacion-ambos');
-        
-        selects.forEach(select => {
+
+    function actualizarSelectsBonificacionMejorada() {
+        // === BONIFICACIONES SOLO BONIFICACIÓN ===
+        const selectsSoloBonif = document.querySelectorAll('.select-bonificacion');
+        const seleccionadosSoloBonif = Array.from(selectsSoloBonif).map(s => s.value).filter(val => val !== '');
+                
+        selectsSoloBonif.forEach(select => {
             const valorActual = select.value;
             select.innerHTML = '<option value="">Seleccione un producto</option>';
             
             articulosDisponibles.forEach(articulo => {
-                const option = document.createElement('option');
-                option.value = articulo.articulo_id;
-                option.textContent = `${articulo.codigo} - ${articulo.descripcion}`;
-                if (articulo.articulo_id === valorActual) {
-                    option.selected = true;
+                // FILTRAR: No mostrar productos ya seleccionados en otros selects
+                const yaSeleccionado = seleccionadosSoloBonif.includes(articulo.articulo_id) && 
+                                    articulo.articulo_id !== valorActual;
+                
+                if (!yaSeleccionado) {
+                    const option = document.createElement('option');
+                    option.value = articulo.articulo_id;
+                    option.textContent = `${articulo.codigo} - ${articulo.descripcion}`;
+                    if (articulo.articulo_id === valorActual) {
+                        option.selected = true;
+                    }
+                    select.appendChild(option);
                 }
-                select.appendChild(option);
             });
         });
+        
+        // === BONIFICACIONES AMBOS ===
+        const selectsAmbos = document.querySelectorAll('.select-bonificacion-ambos');
+        const seleccionadosAmbos = Array.from(selectsAmbos).map(s => s.value).filter(val => val !== '');
+                
+        selectsAmbos.forEach(select => {
+            const valorActual = select.value;
+            select.innerHTML = '<option value="">Seleccione un producto</option>';
+            
+            articulosDisponibles.forEach(articulo => {
+                // ✅ FILTRAR: No mostrar productos ya seleccionados en otros selects
+                const yaSeleccionado = seleccionadosAmbos.includes(articulo.articulo_id) && 
+                                    articulo.articulo_id !== valorActual;
+                
+                if (!yaSeleccionado) {
+                    const option = document.createElement('option');
+                    option.value = articulo.articulo_id;
+                    option.textContent = `${articulo.codigo} - ${articulo.descripcion}`;
+                    if (articulo.articulo_id === valorActual) {
+                        option.selected = true;
+                    }
+                    select.appendChild(option);
+                }
+            });
+        });
+    }
+
+    function actualizarSelectsBonificacion() {
+        actualizarSelectsBonificacionMejorada();
     }
 
     // === FUNCIONES NUEVAS PARA RANGOS ILIMITADOS ===
@@ -1225,16 +1434,13 @@ document.addEventListener('DOMContentLoaded', function () {
         };
     }
 
-    function validarIndicesRangos() {
-        console.log('\n🔍 === VALIDANDO ÍNDICES DE RANGOS ===');
-        
+    function validarIndicesRangos() {        
         const rangosCantidad = document.querySelectorAll('#tabla-rangos-cantidad-body .rango-cantidad-item');
         rangosCantidad.forEach((fila, indiceEsperado) => {
             const indiceAtributo = parseInt(fila.getAttribute('data-index') || '0');
             const isValid = indiceAtributo === indiceEsperado;
             
             if (!isValid) {
-                console.log(`🔧 Corrigiendo índice de cantidad ${indiceAtributo} a ${indiceEsperado}`);
                 fila.setAttribute('data-index', indiceEsperado);
             }
             
@@ -1253,7 +1459,6 @@ document.addEventListener('DOMContentLoaded', function () {
             const isValid = indiceAtributo === indiceEsperado;
             
             if (!isValid) {
-                console.log(`🔧 Corrigiendo índice de monto ${indiceAtributo} a ${indiceEsperado}`);
                 fila.setAttribute('data-index', indiceEsperado);
             }
             
@@ -1265,59 +1470,40 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             });
         });
-        
-        console.log('=== FIN VALIDACIÓN ÍNDICES ===\n');
     }
 
-    // ✅ FUNCIÓN 1: Determinar si se requieren rangos
     function seRequierenRangos() {
         const tipoFiltro = document.querySelector('input[name="tipo_filtro"]:checked')?.value;
         const productosSeleccionados = Array.from(document.querySelectorAll('.productos-condicion-select'))
             .map(s => s.value).filter(val => val !== '');
         
-        // CASO 1: Productos específicos con EXACTAMENTE 1 producto → SÍ requiere rangos
         if (tipoFiltro === 'productos_especificos' && productosSeleccionados.length === 1) {
             return true;
         }
         
-        // CASO 2: Productos específicos con MÁS de 1 producto → NO requiere rangos
         if (tipoFiltro === 'productos_especificos' && productosSeleccionados.length > 1) {
             return false;
         }
         
-        // CASO 3: Marca/Línea completa → NO requiere rangos
         if (tipoFiltro === 'linea_marca') {
             return false;
         }
         
-        // Por defecto, no se requieren rangos
         return false;
     }
 
-    // ✅ FUNCIÓN 2: Validar consistencia solo cuando se requieren rangos
-    function validarConsistenciaRangos() {
-        console.log('\n🔧 === VALIDANDO CONSISTENCIA DE RANGOS ===');
-        
-        // ✅ NUEVO: Verificar si se requieren rangos
+    function validarConsistenciaRangos() {        
         if (!seRequierenRangos()) {
-            console.log('✅ No se requieren rangos para esta configuración, saltando validación');
             return true;
-        }
-        
-        console.log('🎯 Se requieren rangos, procediendo con validación...');
-        
-        // Validar y corregir índices si es necesario
+        }        
         validarIndicesRangos();
         
-        // Contar rangos activos
         const stats = contarRangosActivos();
         
         if (stats.total === 0) {
-            console.log('❌ Se requieren rangos pero no hay ninguno configurado');
             return false;
         }
         
-        // Verificar que cada rango tenga datos mínimos
         let rangosValidos = 0;
         
         // Validar rangos de cantidad
@@ -1326,9 +1512,6 @@ document.addEventListener('DOMContentLoaded', function () {
             const cantidadMin = fila.querySelector('input[name="cantidad_min[]"]')?.value;
             if (cantidadMin && parseInt(cantidadMin) > 0) {
                 rangosValidos++;
-                console.log(`✅ Rango cantidad ${indice}: válido (min: ${cantidadMin})`);
-            } else {
-                console.log(`⚠️ Rango cantidad ${indice}: inválido (min: ${cantidadMin})`);
             }
         });
         
@@ -1344,45 +1527,30 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
         
-        console.log(`📊 Resumen: ${rangosValidos} rangos válidos de ${stats.total} total`);
-        console.log('=== FIN VALIDACIÓN CONSISTENCIA ===\n');
-        
         return rangosValidos > 0;
     }
 
     // === VALIDACIONES ===
-    function validarFormulario() {
-        console.log('🔍 === INICIANDO VALIDACIÓN DEL FORMULARIO ===');
-        
+    function validarFormulario() {        
         // 1. Validar información básica SIEMPRE
         if (!verificarInformacionBasica()) {
-            console.log('❌ Validación fallida: Información básica incompleta');
             alert('Por favor complete toda la información básica obligatoria:\n- Descripción\n- Empresa\n- Sucursal\n- Canal de Cliente\n- Fecha de Inicio\n- Fecha de Fin');
             return false;
         }
-        console.log('✅ Información básica válida');
-
         // 2. Validar configuración de productos SIEMPRE
         if (!verificarConfiguracionProductos()) {
-            console.log('❌ Validación fallida: Configuración de productos incompleta');
             alert('Por favor complete la configuración de productos');
             return false;
         }
-        console.log('✅ Configuración de productos válida');
-
         // 3. Validar estructura específica según el tipo de filtro
         const tipoFiltro = document.querySelector('input[name="tipo_filtro"]:checked')?.value;
         const productosSeleccionados = Array.from(document.querySelectorAll('.productos-condicion-select'))
             .map(s => s.value).filter(val => val !== '');
-        
-        console.log(`📊 Tipo de filtro: ${tipoFiltro}`);
-        console.log(`📦 Productos seleccionados: ${productosSeleccionados.length}`);
 
         if (tipoFiltro === 'linea_marca') {
             // CASO: Por Marca/Línea completa - DEBE tener beneficios
             const tipoBeneficio = tipoBeneficioSelect?.value;
             if (!tipoBeneficio) {
-                console.log('❌ Validación fallida: Falta tipo de beneficio para marca/línea');
                 alert('Para promociones por Marca/Línea debe seleccionar un tipo de beneficio');
                 return false;
             }
@@ -1390,17 +1558,13 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!validarBeneficios(tipoBeneficio)) {
                 return false;
             }
-            console.log('✅ Promoción por Marca/Línea válida');
             
         } else if (tipoFiltro === 'productos_especificos') {
             
             if (productosSeleccionados.length === 1) {
-                // CASO: 1 producto específico - DEBE tener condiciones/rangos
-                console.log('🎯 Validando caso: 1 producto específico (requiere rangos)');
-                
+                // CASO: 1 producto específico - DEBE tener condiciones/rangos                
                 const tipoCondicion = tipoCondicionSelect?.value;
                 if (!tipoCondicion) {
-                    console.log('❌ Validación fallida: Falta tipo de condición para producto específico');
                     alert('Para 1 producto específico debe configurar las condiciones de activación');
                     return false;
                 }
@@ -1408,15 +1572,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (!validarCondiciones(tipoCondicion)) {
                     return false;
                 }
-                console.log('✅ Producto específico con condiciones válido');
                 
             } else if (productosSeleccionados.length > 1) {
-                // CASO: Múltiples productos específicos - DEBE tener beneficios (NO rangos)
-                console.log('🎁 Validando caso: múltiples productos específicos (requiere beneficios, NO rangos)');
-                
+                // CASO: Múltiples productos específicos - DEBE tener beneficios (NO rangos)                
                 const tipoBeneficio = tipoBeneficioSelect?.value;
                 if (!tipoBeneficio) {
-                    console.log('❌ Validación fallida: Falta tipo de beneficio para múltiples productos');
                     alert('Para múltiples productos específicos debe seleccionar un tipo de beneficio');
                     return false;
                 }
@@ -1424,11 +1584,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (!validarBeneficios(tipoBeneficio)) {
                     return false;
                 }
-                console.log('✅ Múltiples productos específicos con beneficios válido');
             }
         }
-
-        console.log('✅ === FORMULARIO VÁLIDO COMPLETAMENTE ===');
         return true;
     }
 
@@ -1520,32 +1677,26 @@ document.addEventListener('DOMContentLoaded', function () {
     const formulario = document.getElementById('form-promocion');
     if (formulario) {
         formulario.addEventListener('submit', function(e) {
-            console.log('\n📝 === SUBMIT CON VALIDACIÓN DE RANGOS ILIMITADOS ===');
             e.preventDefault();
             
             if (!validarConsistenciaRangos()) {
-                alert('❌ Error: Hay problemas con la configuración de rangos');
+                alert('❌ Error: Hay problemas con la configuración de rangos no estan bien asignados');
                 return false;
             }
             
             debugFormularioDetallado();
             
-            if (validarFormulario()) {
-                console.log('✅ Formulario válido, enviando...');
-                
+            if (validarFormulario()) {                
                 const stats = contarRangosActivos();
-                console.log(`🚀 Enviando promoción con ${stats.total} rangos (${stats.cantidad} cantidad + ${stats.monto} monto)`);
                 
                 this.removeEventListener('submit', arguments.callee);
                 this.submit();
             } else {
-                console.log('❌ Validación fallida');
+                console.log('Validación fallida');
             }
             
             return false;
         });
-        
-        console.log('✅ Event listener configurado para rangos ilimitados');
     }
 
     // === AUTO-VALIDACIÓN ===
@@ -1553,19 +1704,16 @@ document.addEventListener('DOMContentLoaded', function () {
         if (e.target.matches('input[name*="cantidad_min"], input[name*="monto_minimo"]')) {
             setTimeout(() => {
                 const stats = contarRangosActivos();
-                console.log(`🔄 Rangos modificados. Total activos: ${stats.total}`);
-            }, 500);
+            }, 200);
         }
     });
 
 
     // ✅ FUNCIÓN 6: Debug mejorado que muestra el contexto
-    function debugFormularioDetallado() {
-        console.log('\n🔍 === DEBUG DETALLADO DEL FORMULARIO ===');
-        
+    function debugFormularioDetallado() {        
         const form = document.getElementById('form-promocion');
         if (!form) {
-            console.log('❌ Formulario no encontrado');
+            console.log('Formulario no encontrado - linea 1726 esta fallando');
             return;
         }
         
@@ -1649,6 +1797,4 @@ document.addEventListener('DOMContentLoaded', function () {
         
         console.log('=== FIN DEBUG DETALLADO ===\n');
     }
-
-    console.log('✅ jvPromos.js configurado para RANGOS ILIMITADOS - Versión Completa con Condiciones de Guardado');
 });

@@ -16,17 +16,11 @@ class UUIDConverter:
 register_converter(UUIDConverter, 'uuid')
 
 urlpatterns = [
-    
-    # path('vendedores/', views.vendedores_list, name='vendedores_list'),
-    # path('usuarios/', views.usuarios_list, name='usuarios_list'),
-    # path('usuarios/nuevo/', views.usuario_create, name='usuario_create'),
-
     path('articulos/', views.articulos_list, name='articulos_list'), 
     path('articulos/nuevo/', views.articulo_create, name='articulo_create'),
     path('articulos/<uuid:articulo_id>/', views.articulo_detail, name='articulo_detail'), 
     path('articulos/<uuid:articulo_id>/editar/', views.articulo_edit, name='articulo_edit'),
     path('articulos/<uuid:articulo_id>/eliminar/', views.articulo_delete, name='articulo_delete'),
-
     path('carrito/agregar/<uuid:articulo_id>/', views.agregar_producto, name='agregar_producto'),
     path('carrito/', views.vista_carrito, name='cart_detail'),
     path('carrito/eliminar/<int:detalle_id>/', views.eliminar_detalle_carrito, name='eliminar_detalle_carrito'),
@@ -35,7 +29,7 @@ urlpatterns = [
     #Nuevo Cambio agregado:
     path('carrito/', views.vista_carrito, name='vista_carrito'),
     path('carrito/eliminar/<int:detalle_id>/', views.eliminar_detalle_carrito, name='eliminar_detalle_carrito'),
-    #path('carrito/procesar/', views.procesar_pedido, name='procesar_pedido'),  # Nueva URL
+    path('carrito/procesar/', views.procesar_pedido, name='procesar_pedido'),  # Nueva URL
 
 
     #Todo lo que tiene que ver con promociones
@@ -51,4 +45,6 @@ urlpatterns = [
     path('pedidos/', views.listar_pedidos, name='listar_pedidos'),
 
 
+    #Para chambearlo por insomnia
+    path('api/promociones/crear-completa/', views.api_crear_promocion_completa, name='api_crear_promocion_completa'),
 ]

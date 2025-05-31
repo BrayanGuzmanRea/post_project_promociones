@@ -30,16 +30,10 @@ urlpatterns = [
     path('logout/', auth_views.LogoutView.as_view(next_page='home'), name='logout'),
 
     # Aquí agregaríamos las URLs de nuestras apps 
-    #path('', include('core.urls')),
     # Cambiamos la URL raíz para que use la vista home de core/views.py
     path('', views.home, name='home'),
-    # Aquí puedes agregar más URLs de tus apps si tienes
-    # Ejemplo:
-    # path('core/', include('core.urls')) este es solo comentario,
     path('core/', include('core.urls')),
-
     path('', views.home, name='home'),  # Usamos esta vista para la raíz
-
     path('empresa/<int:empresa_id>/', views.empresa_seleccionada, name='empresa_seleccionada'),
     path('agregar-producto/<uuid:articulo_id>/', views.agregar_producto, name='agregar_producto'),
     path('carrito/', views.vista_carrito, name='carrito'),
