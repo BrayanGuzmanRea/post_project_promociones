@@ -45,6 +45,8 @@ urlpatterns = [
 
     #Para mostrar el detalle de Pedido
     path('carrito/detalle-pedido/<int:pedido_id>/', views.detalle_pedido, name='detalle_pedido'),
+    path('mis-pedidos/', views.mis_pedidos, name='mis_pedidos'),
+    path('pedidos/', views.listar_pedidos, name='listar_pedidos'),
 
 
 ]

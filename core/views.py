@@ -1055,3 +1055,17 @@ def detalle_pedido(request, pedido_id):
         'descuentos': descuentos,
     }
     return render(request, 'core/pedidos/detalle_pedido.html', context)
+
+# Esto es para listar mis pedidos
+from django.contrib.auth.decorators import login_required, user_passes_test
+from .models import Pedido
+
+@login_required
+def mis_pedidos(request):
+    pedidos = Pedido.objects.filter(usuario=request.user).order_by('-fecha')
+    return render(request, 'core/pedidos/mis_pedidos.html', {'pedidos': pedidos})
+
+@user_passes_test(lambda u: u.is_authenticated and u.id == 1)
+def listar_pedidos(request):
+    pedidos = Pedido.objects.all().order_by('-fecha')
+    return render(request, 'core/pedidos/listar_pedidos.html', {'pedidos': pedidos})
