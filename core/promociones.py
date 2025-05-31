@@ -220,10 +220,10 @@ def evaluar_promocion_con_rangos(promocion, carrito_detalle, productos_validos, 
         
     if tipo_rango == 'cantidad':
         valor_comparar = productos_validos['cantidad_total']
-        print(f"🔢 Cantidad total a evaluar: {valor_comparar}")
+        print(f"Cantidad total a evaluar: {valor_comparar}")
     else: 
         valor_comparar = float(productos_validos['monto_total'])
-        print(f"💰 Monto total a evaluar: S/{valor_comparar}")
+        print(f"Monto total a evaluar: S/{valor_comparar}")
     
     rango_aplicable = None
     for rango in rangos:

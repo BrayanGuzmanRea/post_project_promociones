@@ -28,6 +28,9 @@ urlpatterns = [
     path('carrito/', views.vista_carrito, name='vista_carrito'),
     path('carrito/eliminar/<int:detalle_id>/', views.eliminar_detalle_carrito, name='eliminar_detalle_carrito'),
     path('carrito/procesar/', views.procesar_pedido, name='procesar_pedido'),  # Nueva URL
+    path('carrito/detalle-pedido/<int:pedido_id>/', views.detalle_pedido, name='detalle_pedido'),
+    path('mis-pedidos/', views.mis_pedidos, name='mis_pedidos'),
+    path('pedidos/', views.listar_pedidos, name='listar_pedidos'),
 
     #Todo lo que tiene que ver con promociones
     path('promociones/registrar/', views.registrar_promocion, name='registrar_promocion'),

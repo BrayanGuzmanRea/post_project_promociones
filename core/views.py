@@ -37,9 +37,6 @@ def home(request):
     return render(request, 'core/index.html', context)
 
 def empresa_detail(request, empresa_id):
-    """
-    Vista para mostrar detalle de una empresa específica.
-    """
     empresa = get_object_or_404(Empresa, pk=empresa_id)
     context = {
         'empresas': empresa,
@@ -100,8 +97,6 @@ def agregar_producto(request, articulo_id):
         messages.error(request, f'No se pudo agregar a su carrito, intente nuevamente. Error: {str(e)}')
 
     return redirect(request.META.get('HTTP_REFERER', 'home'))
-
-###############ARTICULOS###############
 
 # @login_required
 def articulos_list(request):
@@ -329,12 +324,12 @@ def vista_carrito(request):
             if beneficios.get('errores'):
                 for error in beneficios['errores']:
                     messages.warning(request, f"Error en promociones: {error}")
-                    print(f"⚠️ Error: {error}")
+                    print(f"Error: {error}")
 
         except Exception as e:
             error_msg = f"Error al evaluar promociones: {str(e)}"
             messages.error(request, error_msg)
-            print(f"🚨 {error_msg}")
+            print(f"{error_msg}")
             import traceback
             traceback.print_exc()
 
@@ -361,8 +356,6 @@ def vista_carrito(request):
         'beneficios_promociones': beneficios_promociones,
         'descuentos_aplicados': descuentos_aplicados
     }) 
-
-# Agregar estas funciones a tu views.py si no las tienes
 
 def obtener_sucursales_por_empresa(request):
     empresa_id = request.GET.get('empresa_id')
@@ -490,11 +483,39 @@ def procesar_pedido(request):
             carrito.delete()
             
             messages.success(request, f"Pedido #{pedido.pedido_id} creado exitosamente")
-            return redirect('home')  # o redirigir a vista de pedidos
-            
+            return redirect('detalle_pedido', pedido_id=pedido.pedido_id)            
     except Exception as e:
         messages.error(request, f"Error al procesar el pedido: {str(e)}")
         return redirect('vista_carrito')
+    
+@login_required
+def detalle_pedido(request, pedido_id):
+    pedido = get_object_or_404(Pedido, pk=pedido_id)
+    detalles = DetallePedido.objects.filter(pedido=pedido).select_related('articulo')
+
+    for item in detalles:
+        item.subtotal = item.cantidad * item.articulo.precio
+
+    bonificaciones = BonificacionAplicada.objects.filter(pedido=pedido).select_related('articulo', 'promocion')
+    descuentos = DescuentoAplicado.objects.filter(pedido=pedido).select_related('promocion')
+
+    context = {
+        'pedido': pedido,
+        'detalles': detalles,
+        'bonificaciones': bonificaciones,
+        'descuentos': descuentos,
+    }
+    return render(request, 'core/pedidos/detalle_pedido.html', context)
+
+@login_required
+def mis_pedidos(request):
+    pedidos = Pedido.objects.filter(usuario=request.user).order_by('-fecha')
+    return render(request, 'core/pedidos/mis_pedidos.html', {'pedidos': pedidos})
+
+def listar_pedidos(request):
+    pedidos = Pedido.objects.all().order_by('-fecha')
+    return render(request, 'core/pedidos/listar_pedidos.html', {'pedidos': pedidos})
+
 
 
 def guardar_beneficios_en_pedido(pedido, beneficios):
@@ -798,7 +819,6 @@ def api_crear_promocion_completa(request):
                         promocion=promocion,
                         articulo_id=producto_id
                     )
-                    print(f"   ✅ Producto verificación: {producto_id}")
             
             if 'rangos' in data and data['rangos']:
                 for rango_data in data['rangos']:
@@ -817,7 +837,6 @@ def api_crear_promocion_completa(request):
                                 articulo_id=prod_bonif['articulo_id'],
                                 cantidad=prod_bonif['cantidad']
                             )
-                            print(f"      🎁 Producto bonificado rango: {prod_bonif['cantidad']} x {prod_bonif['articulo_id']}")
             
             if 'beneficios' in data and data['beneficios']:
                 for beneficio_data in data['beneficios']:
@@ -859,3 +878,4 @@ def api_crear_promocion_completa(request):
         import traceback
         traceback.print_exc()
         return JsonResponse({'error': str(e)}, status=500)
+    

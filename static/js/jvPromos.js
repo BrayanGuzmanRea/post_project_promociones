@@ -1472,48 +1472,38 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // ✅ FUNCIÓN 1: Determinar si se requieren rangos
     function seRequierenRangos() {
         const tipoFiltro = document.querySelector('input[name="tipo_filtro"]:checked')?.value;
         const productosSeleccionados = Array.from(document.querySelectorAll('.productos-condicion-select'))
             .map(s => s.value).filter(val => val !== '');
         
-        // CASO 1: Productos específicos con EXACTAMENTE 1 producto → SÍ requiere rangos
         if (tipoFiltro === 'productos_especificos' && productosSeleccionados.length === 1) {
             return true;
         }
         
-        // CASO 2: Productos específicos con MÁS de 1 producto → NO requiere rangos
         if (tipoFiltro === 'productos_especificos' && productosSeleccionados.length > 1) {
             return false;
         }
         
-        // CASO 3: Marca/Línea completa → NO requiere rangos
         if (tipoFiltro === 'linea_marca') {
             return false;
         }
         
-        // Por defecto, no se requieren rangos
         return false;
     }
 
-    // ✅ FUNCIÓN 2: Validar consistencia solo cuando se requieren rangos
     function validarConsistenciaRangos() {        
-        // ✅ NUEVO: Verificar si se requieren rangos
         if (!seRequierenRangos()) {
             return true;
         }        
-        // Validar y corregir índices si es necesario
         validarIndicesRangos();
         
-        // Contar rangos activos
         const stats = contarRangosActivos();
         
         if (stats.total === 0) {
             return false;
         }
         
-        // Verificar que cada rango tenga datos mínimos
         let rangosValidos = 0;
         
         // Validar rangos de cantidad
