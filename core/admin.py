@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from .models import Usuario, Rol, Empresa, Sucursal, CanalCliente, Cliente, Articulo
-from core.models import Cliente, Usuario
+from core.models import Cliente, Usuario, Promocion
 
 # Formulario para crear usuarios (incluye campo rol)
 class UsuarioCreationForm(UserCreationForm):
@@ -41,6 +41,7 @@ class UsuarioAdmin(BaseUserAdmin):
 
 admin.site.register(Usuario, UsuarioAdmin)
 admin.site.register(Rol)  # Registro de roles para administración
+admin.site.register(Promocion)
 
 # Admin personalizado para Empresa
 @admin.register(Empresa)
