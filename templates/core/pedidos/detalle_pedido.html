@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% block title %}Detalle del Pedido{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-lg">
+        <div class="card-header bg-gradient-primary text-white">
+            <h4 class="mb-0">🧾 Comprobante del Pedido #{{ pedido.pedido_id }}</h4>
+        </div>
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <p><strong>Cliente:</strong> {{ pedido.cliente.usuario.nombre }}</p>
+                    <p><strong>Usuario:</strong> {{ pedido.usuario.username }}</p>
+                    <p><strong>Sucursal:</strong> {{ pedido.sucursal.nombre }}</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <p><strong>Fecha:</strong> {{ pedido.fecha }}</p>
+                    <p class="fs-5 text-primary fw-bold"><strong>Total:</strong> S/ {{ pedido.total|floatformat:2 }}</p>
+                </div>
+            </div>
+
+            <h5 class="mb-3">🛒 Detalles del Pedido</h5>
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Código</th>
+                            <th>Producto</th>
+                            <th>Cantidad</th>
+                            <th>Precio Unitario</th>
+                            <th>Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in detalles %}
+                        <tr>
+                            <td>{{ item.articulo.codigo }}</td>
+                            <td>{{ item.articulo.descripcion }}</td>
+                            <td>{{ item.cantidad }}</td>
+                            <td>S/ {{ item.articulo.precio|floatformat:2 }}</td>
+                            <td>S/ {{ item.subtotal|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                        <tr class="table-warning">
+                            <td colspan="4" class="text-end fw-bold">Total</td>
+                            <td class="fw-bold text-primary">S/ {{ pedido.total|floatformat:2 }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            {% if bonificaciones %}
+            <h5 class="mt-4">🎁 Beneficios Aplicados</h5>
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Código</th>
+                            <th>Producto</th>
+                            <th>Cantidad</th>
+                            <th>Promoción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for b in bonificaciones %}
+                        <tr>
+                            <td><span class="text-danger fw-bold">{{ b.articulo.codigo }}</span></td>
+                            <td>{{ b.articulo.descripcion }}</td>
+                            <td>
+                                <span class="badge bg-warning text-dark">{{ b.cantidad }} GRATIS</span>
+                                {% if b.escalable %}<br><small class="text-success"><i class="fas fa-infinity"></i> Escalable ({{ b.veces_aplicable }}x)</small>{% endif %}
+                            </td>
+                            <td>
+                                <small class="text-muted">{{ b.promocion.descripcion }}</small>
+                                {% if b.escalable %}
+                                <br><span class="badge bg-success bg-opacity-25 text-success">
+                                    <i class="fas fa-repeat"></i> Múltiples aplicaciones
+                                </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            {% if descuentos %}
+            <h5 class="mt-4">💰 Descuentos Aplicados</h5>
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Descripción</th>
+                            <th>Porcentaje</th>
+                            <th>Monto Descuento</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for d in descuentos %}
+                        <tr>
+                            <td>{{ d.descripcion }} ({{ d.promocion.descripcion }})</td>
+                            <td><span class="badge bg-info">{{ d.porcentaje_descuento }}%</span></td>
+                            <td class="text-success">-S/ {{ d.monto_descuento|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

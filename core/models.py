@@ -57,8 +57,8 @@ class Usuario(AbstractUser):
         'Rol',
         on_delete=models.RESTRICT,
         related_name='usuarios',
-        null=False,    
-        blank=False    
+        null=True,    
+        blank=True    
     )
     empresa = models.ForeignKey('Empresa', on_delete=models.RESTRICT, null=True, blank=True)
     sucursal = models.ForeignKey('Sucursal', on_delete=models.RESTRICT, null=True, blank=True)
@@ -72,7 +72,6 @@ class Usuario(AbstractUser):
 
     def __str__(self):
         return self.nombre
-
 
 
 class Cliente(models.Model):
@@ -90,8 +89,8 @@ class Cliente(models.Model):
         db_table = 'clientes'
 
     def __str__(self):
-        # Muestra el nombre del usuario asociado o un texto si no tiene usuario
         return self.usuario.nombre if self.usuario else "Cliente sin usuario"
+
 
 class GrupoProveedor(models.Model):
     grupo_proveedor_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -132,6 +131,7 @@ class SublineaArticulo(models.Model):
     def __str__(self):
         return self.nombre
   
+
 class Articulo(models.Model):
     articulo_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     empresa = models.ForeignKey(Empresa, on_delete=models.RESTRICT, related_name='articulos')
@@ -178,81 +178,135 @@ class StockSucursal(models.Model):
         return f'Stock {self.stock_actual} de {self.articulo} en {self.sucursal}'
 
 
-class TipoBeneficio(models.Model):
-    tipo_beneficio_id = models.AutoField(primary_key=True)
-    nombre = models.CharField(max_length=50, unique=True)
-
-    class Meta:
-        db_table = 'tipos_beneficio'
-
-    def __str__(self):
-        return self.nombre
-
+# ===== NUEVA ESTRUCTURA DE PROMOCIONES =====
 
 class Promocion(models.Model):
-    TIPO_CONDICION_CHOICES = [
-        ('monto', 'Monto'),
-        ('cantidad', 'Cantidad'),
-    ]
-
+    """
+    Tabla actualizada de promociones con la nueva estructura simplificada
+    """
     promocion_id = models.AutoField(primary_key=True)
-    nombre = models.CharField(max_length=255)
+    descripcion = models.CharField(max_length=255)
     empresa = models.ForeignKey(Empresa, on_delete=models.RESTRICT, related_name='promociones')
-    sucursal = models.ForeignKey(Sucursal, on_delete=models.RESTRICT, null=True, blank=True, related_name='promociones')
-    canal_cliente = models.ForeignKey(CanalCliente, on_delete=models.RESTRICT, null=True, blank=True, related_name='promociones')
+    sucursal = models.ForeignKey(Sucursal, on_delete=models.RESTRICT, related_name='promociones')
+    canal_cliente = models.ForeignKey(CanalCliente, on_delete=models.RESTRICT, related_name='promociones')
     fecha_inicio = models.DateField()
     fecha_fin = models.DateField()
-    tipo_condicion = models.CharField(max_length=10, choices=TIPO_CONDICION_CHOICES)
+    grupo_proveedor_id = models.UUIDField(null=True, blank=True)
+    linea_articulo_id = models.UUIDField(null=True, blank=True)
     monto_minimo = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    cantidad_minima = models.IntegerField(null=True, blank=True)
-    tipo_beneficio = models.ForeignKey(TipoBeneficio, on_delete=models.RESTRICT, related_name='promociones')
+    escalable = models.BooleanField(default=False)
     estado = models.IntegerField(choices=EstadoEntidades.choices, default=EstadoEntidades.ACTIVO)
 
     class Meta:
         db_table = 'promociones'
 
     def __str__(self):
-        return self.nombre
+        escalable_text = " (Escalable)" if self.escalable else ""
+        return f"{self.descripcion}{escalable_text}"
 
 
-class PromocionProducto(models.Model):
-    promocion_producto_id = models.AutoField(primary_key=True)
-    promocion = models.ForeignKey(Promocion, on_delete=models.CASCADE, related_name='productos')
-    articulo = models.ForeignKey(Articulo, on_delete=models.RESTRICT, related_name='promocion_productos')
+class VerificacionProducto(models.Model):
+    """
+    Esta tabla se mantiene sin cambios - productos que deben estar en el carrito
+    para que aplique la promoción
+    """
+    verificacion_id = models.AutoField(primary_key=True)
+    articulo = models.ForeignKey('Articulo', on_delete=models.CASCADE, related_name='verificaciones')
+    promocion = models.ForeignKey('Promocion', on_delete=models.CASCADE, related_name='verificaciones')
 
-    class Meta:
-        db_table = 'promocion_productos'
-        unique_together = ('promocion', 'articulo')
-
-
-class PromocionLinea(models.Model):
-    promocion_linea_id = models.AutoField(primary_key=True)
-    promocion = models.ForeignKey(Promocion, on_delete=models.CASCADE, related_name='lineas')
-    linea_articulo = models.ForeignKey(LineaArticulo, on_delete=models.RESTRICT, related_name='promocion_lineas')
+    def __str__(self):
+        return f"Verificación {self.verificacion_id} - Artículo {self.articulo.descripcion} - Promoción {self.promocion.descripcion}"
 
     class Meta:
-        db_table = 'promocion_lineas'
-        unique_together = ('promocion', 'linea_articulo')
+        db_table = 'verificacion_productos'
 
 
-class Bonificacion(models.Model):
-    bonificacion_id = models.AutoField(primary_key=True)
-    promocion = models.ForeignKey(Promocion, on_delete=models.CASCADE, related_name='bonificaciones')
-    articulo = models.ForeignKey(Articulo, on_delete=models.RESTRICT, related_name='bonificaciones')
+class Rango(models.Model):
+    """
+    Nueva tabla de rangos - reemplaza a promocion_productos y descuentos
+    Define los intervalos de cantidad o monto que activan la promoción
+    """
+    TIPO_CONDICION_CHOICES = [
+        ('monto', 'Intervalos de Precios'),
+        ('cantidad', 'Intervalos de Cantidad'),
+    ]
+
+    rango_id = models.AutoField(primary_key=True)
+    tipo_rango = models.CharField(max_length=10, choices=TIPO_CONDICION_CHOICES)
+    minimo = models.IntegerField()
+    maximo = models.IntegerField(null=True, blank=True)
+    descuento = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    promocion = models.ForeignKey(Promocion, on_delete=models.CASCADE, related_name='rangos')
+
+    class Meta:
+        db_table = 'rangos'
+        ordering = ['minimo']
+
+    def __str__(self):
+        tipo_texto = "cantidad" if self.tipo_rango == "cantidad" else "monto"
+        if self.maximo:
+            return f"Rango {tipo_texto}: {self.minimo} - {self.maximo}"
+        return f"Rango {tipo_texto}: {self.minimo}+"
+
+
+class ProductoBonificadoRango(models.Model):
+    """
+    Nueva tabla que vincula productos bonificados con rangos específicos
+    Permite que cada rango tenga sus propios productos bonificados
+    """
+    pro_boni_id = models.AutoField(primary_key=True)
+    articulo = models.ForeignKey(Articulo, on_delete=models.CASCADE, related_name='bonificaciones_rango')
     cantidad = models.IntegerField()
+    rango = models.ForeignKey(Rango, on_delete=models.CASCADE, related_name='productos_bonificados')
 
     class Meta:
-        db_table = 'bonificaciones'
+        db_table = 'producto_bonificado_rangos'
+
+    def __str__(self):
+        return f"{self.cantidad} unidades de {self.articulo.descripcion} (Rango: {self.rango.rango_id})"
 
 
-class Descuento(models.Model):
-    descuento_id = models.AutoField(primary_key=True)
-    promocion = models.ForeignKey(Promocion, on_delete=models.CASCADE, related_name='descuentos')
-    porcentaje = models.DecimalField(max_digits=5, decimal_places=2)
+class Beneficio(models.Model):
+    """
+    Nueva tabla de beneficios - define los tipos de beneficios de la promoción
+    """
+    TIPO_BENEFICIO_CHOICES = [
+        ('bonificacion', 'Solo Bonificación'),
+        ('descuento', 'Solo Descuento'), 
+        ('ambos', 'Bonificación + Descuento'),
+    ]
+
+    beneficio_id = models.AutoField(primary_key=True)
+    tipo_beneficio = models.CharField(max_length=20, choices=TIPO_BENEFICIO_CHOICES)
+    descuento = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    promocion = models.ForeignKey(Promocion, on_delete=models.CASCADE, related_name='beneficios')
 
     class Meta:
-        db_table = 'descuentos'
+        db_table = 'beneficio'
 
+    def __str__(self):
+        desc_text = f" ({self.descuento}%)" if self.descuento else ""
+        return f"{self.get_tipo_beneficio_display()}{desc_text}"
+
+
+class ProductosBeneficios(models.Model):
+    """
+    Nueva tabla que reemplaza a bonificaciones
+    Define qué productos se dan como beneficio y en qué cantidades
+    """
+    pro_bene_id = models.AutoField(primary_key=True)
+    articulo = models.ForeignKey(Articulo, on_delete=models.CASCADE, related_name='beneficios')
+    cantidad = models.IntegerField()
+    beneficio = models.ForeignKey(Beneficio, on_delete=models.CASCADE, related_name='productos')
+
+    class Meta:
+        db_table = 'productos_beneficios'
+
+    def __str__(self):
+        return f"{self.cantidad} unidades de {self.articulo.descripcion}"
+
+
+# ===== MODELOS DE GESTIÓN DE PEDIDOS (SIN CAMBIOS) =====
 
 class BonificacionAplicada(models.Model):
     bonificacion_aplicada_id = models.AutoField(primary_key=True)

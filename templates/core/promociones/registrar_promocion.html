@@ -1,0 +1,685 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-11">
+            <div class="card shadow-lg">
+                <div class="card-header bg-gradient-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-gift"></i> Registrar Nueva Promoción
+                    </h4>
+                    <small>Complete todos los campos para crear una promoción efectiva</small>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="form-promocion">
+                        {% csrf_token %}
+
+                        <!-- SECCIÓN 1: Información Básica -->
+                        <div class="card border-primary mb-4">
+                            <div class="card-header bg-light border-primary">
+                                <h5 class="mb-0 text-primary">
+                                    <i class="fas fa-info-circle"></i> Información Básica
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-12 mb-3">
+                                        <label for="id_nombre" class="form-label required">
+                                            <i class="fas fa-tag"></i> Descripción de la Promoción *
+                                        </label>
+                                        {{ form.descripcion }}
+                                        <div class="form-text">Ejemplo: "3x2 en Vinos Borgoña", "5% descuento por compras mayores a S/300"</div>
+                                    </div>
+
+                                    <div class="col-md-4 mb-3">
+                                        <label for="id_empresa" class="form-label required">
+                                            <i class="fas fa-building"></i> Empresa *
+                                        </label>
+                                        {{ form.empresa }}
+                                    </div>
+
+                                    <div class="col-md-4 mb-3">
+                                        <label for="id_sucursal" class="form-label required">
+                                            <i class="fas fa-store"></i> Sucursal *
+                                        </label>
+                                        {{ form.sucursal }}
+                                    </div>
+
+                                    <div class="col-md-4 mb-3">
+                                        <label for="id_canal_cliente" class="form-label required">
+                                            <i class="fas fa-users"></i> Canal de Cliente *
+                                        </label>
+                                        {{ form.canal_cliente }}
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="id_fecha_inicio" class="form-label required">
+                                            <i class="fas fa-calendar-alt"></i> Fecha de Inicio *
+                                        </label>
+                                        {{ form.fecha_inicio }}
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="id_fecha_fin" class="form-label required">
+                                            <i class="fas fa-calendar-check"></i> Fecha de Fin *
+                                        </label>
+                                        {{ form.fecha_fin }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SECCIÓN 2: Filtros de Productos -->
+                        <div class="card border-warning mb-4">
+                            <div class="card-header bg-light border-warning">
+                                <h5 class="mb-0 text-warning">
+                                    <i class="fas fa-filter"></i> Configuración de Productos
+                                </h5>
+                                <small class="text-muted">Seleccione cómo aplicará la promoción</small>
+                            </div>
+                            <div class="card-body">
+                                <!-- Tipo de filtro -->
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold">Tipo de Promoción:</label>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="card h-100 filtro-option">
+                                                <div class="card-body">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="radio" name="tipo_filtro" id="filtro_linea_marca" value="linea_marca">
+                                                        <label class="form-check-label fw-bold" for="filtro_linea_marca">
+                                                            <i class="fas fa-tags"></i> Por Marca/Línea completa
+                                                        </label>
+                                                    </div>
+                                                    <small class="text-muted">La promoción aplica a TODOS los productos de una marca o línea específica</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="card h-100 filtro-option">
+                                                <div class="card-body">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="radio" name="tipo_filtro" id="filtro_productos" value="productos_especificos" checked>
+                                                        <label class="form-check-label fw-bold" for="filtro_productos">
+                                                            <i class="fas fa-box"></i> Productos específicos
+                                                        </label>
+                                                    </div>
+                                                    <small class="text-muted">La promoción aplica solo a productos seleccionados manualmente</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Configuración por marca/línea -->
+                                <div id="config-linea-marca" class="configuracion-filtro d-none">
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle"></i>
+                                        <strong>Promoción por Marca/Línea:</strong> Seleccione la marca y línea. La promoción aplicará automáticamente a todos los productos que cumplan estos criterios.
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-4 mb-3">
+                                            <label for="id_grupo_proveedor" class="form-label required">
+                                                <i class="fas fa-industry"></i> Marca/Proveedor 
+                                            </label>
+                                            {{ form.grupo_proveedor }}
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label for="id_linea_articulo" class="form-label required">
+                                                <i class="fas fa-list"></i> Línea de Artículo 
+                                            </label>
+                                            {{ form.linea_articulo }}
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label for="monto_minimo_productos" class="form-label required">
+                                                <i class="fas fa-dollar-sign"></i> Monto Mínimo en Productos 
+                                            </label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">S/</span>
+                                                <input type="number" id="monto_minimo_productos" name="monto_minimo_productos" 
+                                                       class="form-control" min="0" step="0.01" placeholder="Ej: 100.00" disabled>
+                                            </div>
+                                            <div class="form-text">Monto mínimo que debe comprar el cliente para acceder a la promoción</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Configuración por productos específicos -->
+                                <div id="config-productos-especificos" class="configuracion-filtro">
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        <strong>Productos Específicos:</strong> Agregue los productos que el cliente debe comprar para acceder a la promoción.
+                                    </div>
+                                    
+                                    <label class="form-label fw-bold">
+                                        <i class="fas fa-shopping-basket"></i> Productos Requeridos para la Promoción:
+                                    </label>
+                                    <div id="productos-condicion-container">
+                                        <div class="row mb-2 producto-condicion">
+                                            <div class="col-md-10">
+                                                <select name="productos_condicion" class="form-select productos-condicion-select">
+                                                    <option value="">Seleccione un producto *</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-2 d-flex align-items-center gap-1">
+                                                <button type="button" class="btn btn-success btn-sm btn-agregar-producto" title="Agregar otro producto">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-danger btn-sm btn-eliminar-producto" title="Eliminar producto">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SECCIÓN 3: Condiciones -->
+                        <div class="card border-info mb-4" id="seccion-condiciones">
+                            <div class="card-header bg-light border-info">
+                                <h5 class="mb-0 text-info">
+                                    <i class="fas fa-cogs"></i> Condiciones de Activación
+                                </h5>
+                                <small class="text-muted">Configure cuándo se activa la promoción</small>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-12">
+                                        <label for="id_tipo_condicion" class="form-label required">
+                                            <i class="fas fa-tools"></i> ¿Cómo se activa la promoción?
+                                        </label>
+                                        {{ form.tipo_condicion }}
+                                        <div class="form-text">Seleccione si la promoción se activa por cantidad de productos o por monto de compra</div>
+                                    </div>
+                                </div>
+
+                                <!-- Condiciones por cantidad -->
+                                <div id="condiciones-cantidad" class="condiciones-container d-none">
+                                    <div class="alert alert-primary">
+                                        <i class="fas fa-calculator"></i>
+                                        <strong>Condición por Cantidad:</strong> La promoción se activa cuando el cliente compra cierta cantidad de productos.
+                                    </div>
+
+                                    <label class="form-label fw-bold">Configuración de Rangos de Cantidad:</label>
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered" id="tabla-rangos-cantidad">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th width="15%">Cantidad Mínima</th>
+                                                    <th width="15%">Cantidad Máxima</th>
+                                                    <th width="15%">Descuento (%)</th>
+                                                    <th width="35%">Productos Bonificados</th>
+                                                    <th width="10%">Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="tabla-rangos-cantidad-body">
+                                                <tr class="rango-cantidad-item" data-index="0">
+                                                    <td>
+                                                        <input type="number" name="cantidad_min[]" class="form-control cantidad-min-input" 
+                                                            min="1" placeholder="Ej: 4" data-rango-index="0">
+                                                    </td>
+                                                    <td>
+                                                        <input type="number" name="cantidad_max[]" class="form-control" min="1" placeholder="Opcional"
+                                                            data-rango-index="0">
+                                                        <small class="text-muted">Vacío = "en adelante"</small>
+                                                    </td>
+                                                    <td>
+                                                        <input type="number" name="porcentaje_descuento_cantidad[]" class="form-control descuento-input" 
+                                                            min="0" max="100" step="0.01" placeholder="Ej: 5" data-rango-index="0">
+                                                    </td>
+                                                    <td>
+                                                        <div class="productos-bonificados-container">
+                                                            <!-- Primer producto bonificado (siempre presente) -->
+                                                            <div class="producto-bonificado-item mb-2">
+                                                                <div class="row">
+                                                                    <div class="col-7">
+                                                                        <!-- ✅ CORREGIDO: Incluir índice 0 -->
+                                                                        <select name="producto_bonificado_cantidad_0[]" class="form-select producto-bonificado-select">
+                                                                            <option value="">Sin producto bonificado</option>
+                                                                        </select>
+                                                                    </div>
+                                                                    <div class="col-3">
+                                                                        <!-- ✅ CORREGIDO: Incluir índice 0 -->
+                                                                        <input type="number" name="cantidad_bonificada_cantidad_0[]" 
+                                                                            class="form-control cantidad-bonificada-input" 
+                                                                            min="1" placeholder="Cant." disabled>
+                                                                    </div>
+                                                                    <div class="col-2">
+                                                                        <button type="button" class="btn btn-danger btn-sm btn-quitar-producto-bonificado" 
+                                                                                title="Quitar producto" style="display: none;">
+                                                                            <i class="fas fa-times"></i>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <!-- Botón para agregar más productos bonificados -->
+                                                        <button type="button" class="btn btn-success btn-sm btn-agregar-producto-bonificado" 
+                                                                title="Agregar más productos bonificados">
+                                                            <i class="fas fa-plus"></i> Agregar Producto
+                                                        </button>
+                                                    </td>
+                                                    <td>
+                                                        <button type="button" class="btn btn-success btn-sm btn-agregar-rango-cantidad me-1 mb-1" 
+                                                                title="Agregar rango">
+                                                            <i class="fas fa-plus"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-danger btn-sm btn-eliminar-rango-cantidad" 
+                                                                title="Eliminar rango">
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Condiciones por monto -->
+                                <div id="condiciones-monto" class="condiciones-container d-none">
+                                    <div class="alert alert-success">
+                                        <i class="fas fa-dollar-sign"></i>
+                                        <strong>Condición por Monto:</strong> La promoción se activa cuando el cliente gasta cierto monto en los productos especificados.
+                                    </div>
+
+                                    <label class="form-label fw-bold">Configuración de Rangos de Monto:</label>
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered" id="tabla-rangos-monto">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th width="15%">Monto Mínimo (S/)</th>
+                                                    <th width="15%">Monto Máximo (S/)</th>
+                                                    <th width="15%">Descuento (%)</th>
+                                                    <th width="35%">Productos Bonificados</th>
+                                                    <th width="10%">Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="tabla-rangos-monto-body">
+                                                <tr class="rango-monto-item" data-index="0">
+                                                    <td>
+                                                        <input type="number" name="monto_minimo[]" class="form-control monto-min-input" 
+                                                            min="0" step="0.01" placeholder="Ej: 300" data-rango-index="0">
+                                                    </td>
+                                                    <td>
+                                                        <input type="number" name="monto_maximo[]" class="form-control" min="0" step="0.01" placeholder="Opcional"
+                                                            data-rango-index="0">
+                                                        <small class="text-muted">Vacío = "en adelante"</small>
+                                                    </td>
+                                                    <td>
+                                                        <input type="number" name="porcentaje_descuento_monto[]" class="form-control descuento-input" 
+                                                            min="0" max="100" step="0.01" placeholder="Ej: 5" data-rango-index="0">
+                                                    </td>
+                                                    <td>
+                                                        <div class="productos-bonificados-container">
+                                                            <!-- Primer producto bonificado (siempre presente) -->
+                                                            <div class="producto-bonificado-item mb-2">
+                                                                <div class="row">
+                                                                    <div class="col-7">
+                                                                        <!-- ✅ CORREGIDO: Incluir índice 0 -->
+                                                                        <select name="producto_bonificado_monto_0[]" class="form-select producto-bonificado-select">
+                                                                            <option value="">Sin producto bonificado</option>
+                                                                        </select>
+                                                                    </div>
+                                                                    <div class="col-3">
+                                                                        <!-- ✅ CORREGIDO: Incluir índice 0 -->
+                                                                        <input type="number" name="cantidad_bonificada_monto_0[]" 
+                                                                            class="form-control cantidad-bonificada-input" 
+                                                                            min="1" placeholder="Cant." disabled>
+                                                                    </div>
+                                                                    <div class="col-2">
+                                                                        <button type="button" class="btn btn-danger btn-sm btn-quitar-producto-bonificado" 
+                                                                                title="Quitar producto" style="display: none;">
+                                                                            <i class="fas fa-times"></i>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <!-- Botón para agregar más productos bonificados -->
+                                                        <button type="button" class="btn btn-success btn-sm btn-agregar-producto-bonificado" 
+                                                                title="Agregar más productos bonificados">
+                                                            <i class="fas fa-plus"></i> Agregar Producto
+                                                        </button>
+                                                    </td>
+                                                    <td>
+                                                        <button type="button" class="btn btn-success btn-sm btn-agregar-rango-monto me-1 mb-1" 
+                                                                title="Agregar rango">
+                                                            <i class="fas fa-plus"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-danger btn-sm btn-eliminar-rango-monto" 
+                                                                title="Eliminar rango">
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SECCIÓN 4: Beneficios -->
+                        <div class="card border-success mb-4" id="seccion-beneficios">
+                            <div class="card-header bg-light border-success">
+                                <h5 class="mb-0 text-success">
+                                    <i class="fas fa-gift"></i> Beneficios de la Promoción
+                                </h5>
+                                <small class="text-muted">Configure qué recibirá el cliente</small>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-8">
+                                        <label for="id_tipo_beneficio" class="form-label required">
+                                            <i class="fas fa-star"></i> Tipo de Beneficio
+                                        </label>
+                                        {{ form.tipo_beneficio }}
+                                        <div class="form-text">Seleccione qué tipo de beneficio recibirá el cliente cuando se active la promoción</div>
+                                    </div>
+                                </div>
+
+                                <!-- Solo Bonificación -->
+                                <div id="beneficios-bonificacion" class="beneficios-container d-none">
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-gift"></i>
+                                        <strong>Productos Bonificados (GRATIS):</strong> Configure qué productos recibirá gratis el cliente.
+                                    </div>
+                                    
+                                    <label class="form-label fw-bold">Productos que se darán GRATIS:</label>
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Producto</th>
+                                                    <th width="150">Cantidad</th>
+                                                    <th width="100">Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="tabla-bonificaciones">
+                                                <tr class="bonificacion-item">
+                                                    <td>
+                                                        <select name="productos_bonificados[]" class="form-select select-bonificacion">
+                                                            <option value="">Seleccione un producto *</option>
+                                                        </select>
+                                                    </td>
+                                                    <td>
+                                                        <input type="number" name="cantidad_bonificada[]" class="form-control" min="1" placeholder="Ej: 2">
+                                                    </td>
+                                                    <td>
+                                                        <button type="button" class="btn btn-success btn-sm btn-agregar-bonificacion me-1" title="Agregar producto">
+                                                            <i class="fas fa-plus"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-danger btn-sm btn-eliminar-bonificacion" title="Eliminar producto">
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Solo Descuento -->
+                                <div id="beneficios-descuento" class="beneficios-container d-none">
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-percentage"></i>
+                                        <strong>Descuento:</strong> Configure el porcentaje de descuento que recibirá el cliente.
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <label for="descuento_general" class="form-label required">Porcentaje de Descuento (%) *:</label>
+                                            <div class="input-group">
+                                                <input type="number" id="descuento_general" name="porcentaje_descuento" 
+                                                       class="form-control" min="0" max="100" step="0.01" placeholder="Ej: 10">
+                                                <span class="input-group-text">%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Ambos (Bonificación + Descuento) -->
+                                <div id="beneficios-ambos" class="beneficios-container d-none">
+                                    <div class="alert alert-purple">
+                                        <i class="fas fa-crown"></i>
+                                        <strong>Promoción Combinada:</strong> El cliente recibirá productos gratis Y descuentos.
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <!-- Bonificaciones -->
+                                        <div class="col-md-8">
+                                            <h6 class="text-warning">
+                                                <i class="fas fa-gift"></i> Productos Bonificados
+                                            </h6>
+                                            <div class="table-responsive">
+                                                <table class="table table-sm table-bordered">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th>Producto</th>
+                                                            <th width="100">Cantidad</th>
+                                                            <th width="80">Acciones</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="tabla-bonificaciones-ambos">
+                                                        <tr class="bonificacion-ambos-item">
+                                                            <td>
+                                                                <select name="productos_bonificados_ambos[]" class="form-select select-bonificacion-ambos" >
+                                                                    <option value="">Seleccione producto *</option>
+                                                                </select>
+                                                            </td>
+                                                            <td>
+                                                                <input type="number" name="cantidad_bonificada_ambos[]" class="form-control" min="1">
+                                                            </td>
+                                                            <td>
+                                                                <button type="button" class="btn btn-success btn-sm btn-agregar-bonificacion-ambos me-1">
+                                                                    <i class="fas fa-plus"></i>
+                                                                </button>
+                                                                <button type="button" class="btn btn-danger btn-sm btn-eliminar-bonificacion-ambos">
+                                                                    <i class="fas fa-times"></i>
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Descuento -->
+                                        <div class="col-md-4">
+                                            <h6 class="text-info">
+                                                <i class="fas fa-percentage"></i> Descuento
+                                            </h6>
+                                            <div class="card bg-light">
+                                                <div class="card-body">
+                                                    <label for="descuento_ambos" class="form-label required">Porcentaje (%) *:</label>
+                                                    <div class="input-group">
+                                                        <input type="number" id="descuento_ambos" name="porcentaje_descuento_ambos" 
+                                                               class="form-control" min="0" max="100" step="0.01">
+                                                        <span class="input-group-text">%</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SECCIÓN 5: Promoción Escalable y Estado -->
+                        <div class="row mb-4">
+                            <!-- Promoción Escalable (Izquierda) -->
+                            <div class="col-md-6">
+                                <div class="card border-warning">
+                                    <div class="card-header bg-light border-warning">
+                                        <h5 class="mb-0 text-warning">
+                                            <i class="fas fa-infinity"></i> Promoción Escalable
+                                        </h5>
+                                        <small class="text-muted">Configuración de escalabilidad</small>
+                                    </div>
+                                    <div class="card-body" id="card-promocion-escalable">
+                                        <div class="form-check mb-3">
+                                            <input class="form-check-input" type="checkbox" id="promocion_escalable" name="promocion_escalable" value="1" disabled>
+                                            <label class="form-check-label fw-bold text-primary" for="promocion_escalable">
+                                                <i class="fas fa-infinity"></i> Activar Promoción Escalable
+                                            </label>
+                                        </div>
+                                        
+                                        <div class="alert alert-info mb-3">
+                                            <h6 class="alert-heading">
+                                                <i class="fas fa-info-circle"></i> ¿Qué es una promoción escalable?
+                                            </h6>
+                                            <p class="mb-2">
+                                                <strong>Casos 1 y 2:</strong> La promoción se aplica múltiples veces según la cantidad/monto que compre el cliente.
+                                            </p>
+                                            <div class="example-box p-2 bg-light rounded">
+                                                <strong>Ejemplo:</strong><br>
+                                                • 4 cajas → 2 gratis<br>
+                                                • 8 cajas → 4 gratis<br>
+                                                • 12 cajas → 6 gratis
+                                            </div>
+                                        </div>
+
+                                        <div class="alert alert-warning">
+                                            <h6 class="mb-2">
+                                                <i class="fas fa-exclamation-triangle"></i> Condiciones para activar:
+                                            </h6>
+                                            <ul class="mb-0 small">
+                                                <li><strong>Opción 1:</strong> "Intervalos de Cantidad" + Productos bonificados agregados</li>
+                                                <li><strong>Opción 2:</strong> "Por Marca/Línea" + Tipo beneficio "Bonificación" o "Ambos"</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Estado de la Promoción (Derecha) -->
+                            <div class="col-md-6">
+                                <div class="card border-secondary">
+                                    <div class="card-header bg-light border-secondary">
+                                        <h5 class="mb-0 text-secondary">
+                                            <i class="fas fa-toggle-on"></i> Estado de la Promoción
+                                        </h5>
+                                        <small class="text-muted">Control de activación</small>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-12 mb-3">
+                                                <label for="id_estado" class="form-label required">
+                                                    <i class="fas fa-power-off"></i> Estado *:
+                                                </label>
+                                                {{ form.estado }}
+                                                <div class="form-text">Puede activar o desactivar la promoción más tarde desde el panel administrativo</div>
+                                            </div>
+                                        </div>
+
+                                        <div class="alert alert-secondary">
+                                            <h6 class="mb-2">
+                                                <i class="fas fa-info-circle"></i> Información:
+                                            </h6>
+                                            <ul class="mb-0 small">
+                                                <li><strong>Activo:</strong> La promoción estará disponible para los clientes</li>
+                                                <li><strong>Inactivo:</strong> La promoción no aparecerá en el sistema</li>
+                                                <li>El estado puede modificarse después de crear la promoción</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Botones de acción -->
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-success btn-lg px-5">
+                                <i class="fas fa-save"></i> Crear Promoción
+                            </button>
+                            <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-lg px-5 ms-3">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.alert-purple {
+    color: #6f42c1;
+    background-color: #f8f4ff;
+    border-color: #d1c7f0;
+}
+
+.required::after {
+    content: " *";
+    color: red;
+}
+
+.form-control:disabled, .form-select:disabled {
+    background-color: #f8f9fa !important;
+    opacity: 0.65;
+}
+
+.card-promocion-escalable-disabled {
+    opacity: 0.5;
+    background-color: #f8f9fa !important;
+}
+
+.seccion-deshabilitada {
+    opacity: 0.6 !important;
+    pointer-events: none !important;
+    position: relative;
+}
+
+.seccion-deshabilitada::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(248, 249, 250, 0.7);
+    z-index: 1;
+}
+
+.seccion-deshabilitada .card-header {
+    background-color: #e9ecef !important;
+    color: #6c757d !important;
+}
+
+.filtro-option {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.filtro-option:hover {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transform: translateY(-1px);
+}
+
+.table-responsive {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.producto-bonificado-item {
+    border: 1px solid #e3e6f0;
+    border-radius: 0.35rem;
+    padding: 0.5rem;
+    background-color: #f8f9fa;
+}
+
+.btn-sm {
+    font-size: 0.75rem;
+}
+
+.form-control-sm, .form-select-sm {
+    font-size: 0.75rem;
+}
+</style>
+
+<script src="{% static 'js/jvPromos.js' %}"></script>
+{% endblock %}

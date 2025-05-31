@@ -24,7 +24,7 @@
                     </ul>
                 </li>
 
-                <!-- Dropdown para Usuarios -->
+                <!-- Dropdown para Usuarios 
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="usuariosDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="fas fa-users me-1"></i>Usuarios
@@ -35,7 +35,27 @@
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="#">Perfiles</a></li>
                     </ul>
+                </li>-->
+                {% if user.is_authenticated and user.id == 1 %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarPromos" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Promociones
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="navbarPromos">
+                        <li><a class="dropdown-item" href="{% url 'registrar_promocion' %}">Registrar Promos</a></li>
+                        <li><a class="dropdown-item" href="#">Listar Promos</a></li>
+                        <li><a class="dropdown-item" href="#">Editar Promos</a></li>
+                        <li><a class="dropdown-item" href="#">Inhabilitar Promos</a></li>
+                    </ul>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'listar_pedidos' %}">
+                        <i class="fas fa-clipboard-list me-1"></i>Pedidos
+                    </a>
+                </li>
+
+                {% endif %}
+
             </ul>
         
             <!-- Usuario , carrito , úsqueda -->
@@ -48,7 +68,6 @@
                 
 
                 {% if user.is_authenticated %}
-                    <!-- Botón de Carrito de Compras -->
                 <a href="{% url 'carrito' %}" class="btn btn-outline-light position-relative me-2">
                     <i class="fas fa-shopping-cart"></i>
                     {% if cart|length > 0 %}
@@ -65,6 +84,9 @@
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                             <li><a class="dropdown-item" href="#"><i class="fas fa-user-circle me-2"></i>Perfil</a></li>
                             <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Configuración</a></li>
+                            {% if user.is_authenticated and user.id != 1 %}
+                            <li><a class="dropdown-item" href="{% url 'mis_pedidos' %}"><i class="fas fa-box me-2"></i>Mis Pedidos</a></li>
+                            {% endif %}
                             <li><hr class="dropdown-divider"></li>
                             <li>
                                 <form method="post" action="{% url 'logout' %}">
